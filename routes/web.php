@@ -22,6 +22,7 @@ Route::put('/dashboard/classes/{studyClass}', [\App\Http\Controllers\DashboardCo
 Route::delete('/dashboard/classes/{studyClass}', [\App\Http\Controllers\DashboardController::class, 'destroyClass'])->middleware('auth')->name('dashboard.classes.destroy');
 Route::post('/dashboard/resources/assign', [\App\Http\Controllers\DashboardController::class, 'assignResource'])->middleware('auth')->name('dashboard.resources.assign');
 Route::post('/dashboard/resources/upload-and-assign', [\App\Http\Controllers\DashboardController::class, 'uploadAndAssignResource'])->middleware('auth')->name('dashboard.resources.upload_assign');
+Route::post('/dashboard/resources/upload-chunk', [\App\Http\Controllers\DashboardController::class, 'uploadChunk'])->middleware('auth')->name('dashboard.resources.upload_chunk');
 Route::post('/dashboard/resources/{resource}/remove', [\App\Http\Controllers\DashboardController::class, 'removeResource'])->middleware('auth')->name('dashboard.resources.remove');
 Route::post('/dashboard/resources/reorder', [\App\Http\Controllers\DashboardController::class, 'reorderResources'])->middleware('auth')->name('dashboard.resources.reorder');
 

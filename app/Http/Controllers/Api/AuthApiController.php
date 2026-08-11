@@ -128,4 +128,33 @@ class AuthApiController extends Controller
             'data'    => $request->user(),
         ]);
     }
+
+    // ──────────────────────────────────────────────────────────────
+    // POST /api/auth/change-password   (requires Bearer token)
+    // ──────────────────────────────────────────────────────────────
+    public function changePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'new_password'     => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The current password you entered is incorrect.',
+            ], 400);
+        }
+
+        $user->update([
+            'password' => Hash::make($validated['new_password']),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password changed successfully.',
+        ]);
+    }
 }

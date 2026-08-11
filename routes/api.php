@@ -27,6 +27,7 @@ Route::middleware('auth.api')->group(function () {
     // Auth
     Route::post('auth/logout', [AuthApiController::class, 'logout']);  // POST /api/auth/logout
     Route::get('auth/me',      [AuthApiController::class, 'me']);      // GET  /api/auth/me
+    Route::post('auth/change-password', [AuthApiController::class, 'changePassword']); // POST /api/auth/change-password
 
     // Question Papers
     Route::get('question-papers',      [QuestionPaperApiController::class, 'index']);  // GET  /api/question-papers

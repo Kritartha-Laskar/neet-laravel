@@ -1091,7 +1091,7 @@
             }
         }
 
-        // Handle File upload with progress bar
+        // Handle File upload with progress bar using Chunked uploads
         if (uploadAssignForm) {
             uploadAssignForm.addEventListener('submit', function (e) {
                 const uploadTypeVal = uploadType ? uploadType.value : 'video';
@@ -1102,6 +1102,14 @@
 
                 // Prevent standard submit for file resource upload
                 e.preventDefault();
+
+                // Check if file is selected
+                if (!uploadFile || !uploadFile.files || uploadFile.files.length === 0) {
+                    alert('Please select a file to upload.');
+                    return;
+                }
+
+                const file = uploadFile.files[0];
 
                 // Disable submit button and close button to prevent double submit/cancelling unexpectedly
                 if (uploadSubmitBtn) {
@@ -1126,98 +1134,144 @@
                 if (progressStatus) progressStatus.textContent = 'Preparing upload...';
                 if (progressStats) progressStats.textContent = '';
 
-                // Create FormData
-                const formData = new FormData(uploadAssignForm);
+                // Chunk parameters: 1.5MB per chunk (to stay safely under server's 2MB limit)
+                const chunkSize = 1.5 * 1024 * 1024;
+                const totalChunks = Math.ceil(file.size / chunkSize);
+                const fileUuid = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                let currentChunk = 0;
 
-                // Setup XMLHttpRequest
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', uploadAssignForm.action, true);
-                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+                function uploadNextChunk() {
+                    const start = currentChunk * chunkSize;
+                    const end = Math.min(start + chunkSize, file.size);
+                    const chunk = file.slice(start, end);
 
-                // Track progress
-                xhr.upload.addEventListener('progress', function (event) {
-                    if (event.lengthComputable) {
-                        const percentComplete = Math.round((event.loaded / event.total) * 100);
-                        const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
-                        const totalMB = (event.total / (1024 * 1024)).toFixed(2);
+                    const chunkData = new FormData();
+                    chunkData.append('file_uuid', fileUuid);
+                    chunkData.append('chunk_index', currentChunk);
+                    chunkData.append('total_chunks', totalChunks);
+                    chunkData.append('file_name', file.name);
+                    chunkData.append('file_chunk', chunk);
 
-                        if (progressBar) {
-                            progressBar.style.width = percentComplete + '%';
-                            progressBar.textContent = percentComplete + '%';
-                            progressBar.setAttribute('aria-valuenow', percentComplete);
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', '{{ route("dashboard.resources.upload_chunk") }}', true);
+                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                    xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+
+                    xhr.upload.addEventListener('progress', function (event) {
+                        if (event.lengthComputable) {
+                            const uploadedBytesPrior = currentChunk * chunkSize;
+                            const currentUploadedBytes = event.loaded;
+                            const totalUploadedBytes = Math.min(uploadedBytesPrior + currentUploadedBytes, file.size);
+                            const percentComplete = Math.round((totalUploadedBytes / file.size) * 100);
+                            const loadedMB = (totalUploadedBytes / (1024 * 1024)).toFixed(2);
+                            const totalMB = (file.size / (1024 * 1024)).toFixed(2);
+
+                            if (progressBar) {
+                                progressBar.style.width = percentComplete + '%';
+                                progressBar.textContent = percentComplete + '%';
+                                progressBar.setAttribute('aria-valuenow', percentComplete);
+                            }
+                            if (progressStatus) progressStatus.textContent = 'Uploading chunk ' + (currentChunk + 1) + ' of ' + totalChunks + '...';
+                            if (progressStats) progressStats.textContent = loadedMB + ' MB / ' + totalMB + ' MB';
                         }
-                        if (progressStatus) progressStatus.textContent = 'Uploading file...';
-                        if (progressStats) progressStats.textContent = loadedMB + ' MB / ' + totalMB + ' MB';
-                    }
-                });
+                    });
 
-                // Request completed
-                xhr.addEventListener('load', function () {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        if (progressStatus) progressStatus.textContent = 'Upload complete! Processing and saving...';
-                        if (progressBar) {
-                            progressBar.classList.remove('bg-success');
-                            progressBar.classList.add('bg-info');
+                    xhr.addEventListener('load', function () {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            let responseObj;
+                            try {
+                                responseObj = JSON.parse(xhr.responseText);
+                            } catch (e) {
+                                handleUploadError('Invalid response from chunk server.');
+                                return;
+                            }
+
+                            currentChunk++;
+
+                            if (currentChunk < totalChunks) {
+                                uploadNextChunk();
+                            } else {
+                                // All chunks uploaded! Send final assignment request
+                                if (progressStatus) progressStatus.textContent = 'Upload complete! Processing and saving...';
+                                submitFinalForm(responseObj.temp_file_path);
+                            }
+                        } else {
+                            handleUploadError('Chunk upload failed with status code ' + xhr.status);
                         }
-                        // Refresh the page to show the newly added resource
-                        window.location.reload();
-                    } else {
-                        // Error handling
-                        let errorMsg = 'Upload failed with status code ' + xhr.status;
-                        try {
-                            const responseObj = JSON.parse(xhr.responseText);
-                            if (responseObj.message) {
-                                errorMsg = responseObj.message;
-                            } else if (responseObj.errors) {
-                                // Extract validation errors
-                                const errorList = [];
-                                for (const key in responseObj.errors) {
-                                    if (responseObj.errors.hasOwnProperty(key)) {
-                                        errorList.push(responseObj.errors[key].join(', '));
+                    });
+
+                    xhr.addEventListener('error', function () {
+                        handleUploadError('Network error occurred during chunk upload. Please check your connection.');
+                    });
+
+                    xhr.send(chunkData);
+                }
+
+                function submitFinalForm(tempFilePath) {
+                    const finalData = new FormData(uploadAssignForm);
+                    
+                    // Remove the raw file input from the final request (we upload it via chunks)
+                    finalData.delete('file');
+                    
+                    // Append the temp file reference info
+                    finalData.append('temp_file_path', tempFilePath);
+                    finalData.append('temp_file_name', file.name);
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', uploadAssignForm.action, true);
+                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                    xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+
+                    xhr.addEventListener('load', function () {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            if (progressStatus) progressStatus.textContent = 'Done! Redirecting...';
+                            if (progressBar) {
+                                progressBar.classList.remove('bg-success');
+                                progressBar.classList.add('bg-info');
+                            }
+                            window.location.reload();
+                        } else {
+                            let errorMsg = 'Final validation/save failed (status code ' + xhr.status + ')';
+                            try {
+                                const responseObj = JSON.parse(xhr.responseText);
+                                if (responseObj.message) {
+                                    errorMsg = responseObj.message;
+                                } else if (responseObj.errors) {
+                                    const errorList = [];
+                                    for (const key in responseObj.errors) {
+                                        if (responseObj.errors.hasOwnProperty(key)) {
+                                            errorList.push(responseObj.errors[key].join(', '));
+                                        }
+                                    }
+                                    if (errorList.length > 0) {
+                                        errorMsg = errorList.join('\n');
                                     }
                                 }
-                                if (errorList.length > 0) {
-                                    errorMsg = errorList.join('\n');
-                                }
-                            }
-                        } catch (e) {
-                            // If response is not JSON
+                            } catch (e) {}
+                            handleUploadError(errorMsg);
                         }
+                    });
 
-                        alert('Error:\n' + errorMsg);
-                        if (progressStatus) progressStatus.textContent = 'Upload failed.';
-                        if (uploadSubmitBtn) {
-                            uploadSubmitBtn.disabled = false;
-                            uploadSubmitBtn.innerHTML = 'Upload & Assign';
-                        }
-                        if (closeBtn) closeBtn.disabled = false;
-                    }
-                });
+                    xhr.addEventListener('error', function () {
+                        handleUploadError('Network error during final save submission.');
+                    });
 
-                // Connection error
-                xhr.addEventListener('error', function () {
-                    alert('Network error occurred during the upload. Please check your connection and php.ini limits.');
-                    if (progressStatus) progressStatus.textContent = 'Network error.';
+                    xhr.send(finalData);
+                }
+
+                function handleUploadError(message) {
+                    alert('Error:\n' + message);
+                    if (progressStatus) progressStatus.textContent = 'Upload failed.';
                     if (uploadSubmitBtn) {
                         uploadSubmitBtn.disabled = false;
                         uploadSubmitBtn.innerHTML = 'Upload & Assign';
                     }
                     if (closeBtn) closeBtn.disabled = false;
-                });
+                }
 
-                // Aborted upload
-                xhr.addEventListener('abort', function () {
-                    if (progressStatus) progressStatus.textContent = 'Upload aborted.';
-                    if (uploadSubmitBtn) {
-                        uploadSubmitBtn.disabled = false;
-                        uploadSubmitBtn.innerHTML = 'Upload & Assign';
-                    }
-                    if (closeBtn) closeBtn.disabled = false;
-                });
-
-                // Send request
-                xhr.send(formData);
+                // Start the upload flow
+                uploadNextChunk();
             });
         }
     })();

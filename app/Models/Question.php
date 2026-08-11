@@ -20,7 +20,7 @@ class Question extends Model
     public function getImageUrlAttribute(): ?string
     {
         return $this->image
-            ? Storage::url($this->image)
+            ? route('questions.image', $this->id)
             : null;
     }
 

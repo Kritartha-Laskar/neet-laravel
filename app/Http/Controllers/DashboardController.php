@@ -342,4 +342,21 @@ class DashboardController extends Controller
 
         return response()->file($filePath);
     }
+
+    /**
+     * View or stream a question image directly.
+     */
+    public function viewQuestionImage(Question $question)
+    {
+        if (!$question->image) {
+            abort(404, 'Question image not found');
+        }
+
+        $filePath = storage_path("app/public/{$question->image}");
+        if (!file_exists($filePath)) {
+            abort(404, 'File not found');
+        }
+
+        return response()->file($filePath);
+    }
 }

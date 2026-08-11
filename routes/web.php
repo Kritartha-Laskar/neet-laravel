@@ -61,4 +61,16 @@ Route::get('/storage/{path}', function ($path) {
     return $response;
 })->where('path', '.*');
 
+Route::get('/run-link', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('storage:link');
+        return 'Storage link created successfully!';
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+});
+
+Route::get('/resources/{resource}/view', [\App\Http\Controllers\DashboardController::class, 'viewResource'])->name('dashboard.resources.view');
+Route::get('/resources/{resource}/thumbnail', [\App\Http\Controllers\DashboardController::class, 'viewThumbnail'])->name('dashboard.resources.thumbnail');
+
 

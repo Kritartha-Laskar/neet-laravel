@@ -39,14 +39,14 @@ class Resource extends Model
     /** Full public URL to the file */
     public function getFileUrlAttribute(): string
     {
-        return Storage::url($this->file_path);
+        return route('dashboard.resources.view', $this->id);
     }
 
     /** Full public URL to the thumbnail (if any) */
     public function getThumbnailUrlAttribute(): ?string
     {
         return $this->thumbnail_path
-            ? Storage::url($this->thumbnail_path)
+            ? route('dashboard.resources.thumbnail', $this->id)
             : null;
     }
 

@@ -310,4 +310,36 @@ class DashboardController extends Controller
             'message' => "Chunk {$chunkIndex} uploaded successfully."
         ]);
     }
+
+    /**
+     * View or stream a resource securely/directly.
+     */
+    public function viewResource(Resource $resource)
+    {
+        $filePath = storage_path("app/public/{$resource->file_path}");
+        if (!file_exists($filePath)) {
+            abort(404, 'File not found');
+        }
+
+        return response()->file($filePath, [
+            'Content-Type' => $resource->mime_type ?: mime_content_type($filePath) ?: 'application/octet-stream',
+        ]);
+    }
+
+    /**
+     * View or stream a thumbnail directly.
+     */
+    public function viewThumbnail(Resource $resource)
+    {
+        if (!$resource->thumbnail_path) {
+            abort(404, 'Thumbnail not found');
+        }
+
+        $filePath = storage_path("app/public/{$resource->thumbnail_path}");
+        if (!file_exists($filePath)) {
+            abort(404, 'File not found');
+        }
+
+        return response()->file($filePath);
+    }
 }

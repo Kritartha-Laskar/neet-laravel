@@ -140,12 +140,23 @@ class ClassController extends Controller
             'answers'        => 'required|array|min:2',
             'answers.*'      => 'required|string|max:500',
             'correct_index'  => 'required|integer',
+            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $uploadedFile = $request->file('image');
+            $folder       = "questions";
+            $fileName     = time() . '_' . Str::slug(pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME))
+                            . '.' . $uploadedFile->getClientOriginalExtension();
+            $imagePath    = $uploadedFile->storeAs($folder, $fileName, 'public');
+        }
 
         $question = Question::create([
             'study_class_id' => $request->study_class_id,
             'subject_id'     => $request->subject_id,
             'question'       => $request->question,
+            'image'          => $imagePath,
             'question_type'  => 'mcq',
             'sort_order'     => $request->sort_order ?? 1,
         ]);

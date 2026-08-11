@@ -691,6 +691,13 @@
                                                     <option value="3">Option D</option>
                                                 </select>
                                             </div>
+
+                                            <!-- Image Upload for MCQ Question -->
+                                            <div class="form-group mb-3">
+                                                <label for="upload_question_image" class="fw-semibold">Question Image (Optional)</label>
+                                                <input type="file" name="image" id="upload_question_image" class="form-control" accept="image/*">
+                                                <small class="text-muted">Supported: JPEG, PNG, WebP (Max 2MB)</small>
+                                            </div>
                                         </div>
 
                                         <!-- Shared sort order field -->

@@ -7,6 +7,8 @@ use App\Models\Answer;
 use App\Models\Question;
 use App\Models\Subject;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class QuestionController extends Controller
 {
@@ -27,6 +29,7 @@ class QuestionController extends Controller
         $request->validate([
             'subject_id'    => 'required|exists:subjects,id',
             'question'      => 'required|string',
+            'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'question_type' => 'required|in:mcq,msq,descripted',
             'answers'       => 'nullable|array|min:2',
             'answers.*'     => 'required|string|max:500',
@@ -34,10 +37,17 @@ class QuestionController extends Controller
             'is_correct.*'  => 'in:0,1',
         ]);
 
+        $data = $request->only('subject_id', 'question', 'question_type');
+
+        if ($request->hasFile('image')) {
+            $imageFile = $request->file('image');
+            $imageName = time() . '_' . Str::slug(pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME))
+                         . '.' . $imageFile->getClientOriginalExtension();
+            $data['image'] = $imageFile->storeAs('questions', $imageName, 'public');
+        }
+
         // Create the question first
-        $question = Question::create(
-            $request->only('subject_id', 'question', 'question_type')
-        );
+        $question = Question::create($data);
 
         // Save each answer option
         $answers    = $request->input('answers', []);
@@ -70,6 +80,7 @@ class QuestionController extends Controller
         $request->validate([
             'subject_id'    => 'required|exists:subjects,id',
             'question'      => 'required|string',
+            'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'question_type' => 'required|in:mcq,msq,descripted',
             'answers'       => 'nullable|array|min:2',
             'answers.*'     => 'required|string|max:500',
@@ -77,10 +88,22 @@ class QuestionController extends Controller
             'is_correct.*'  => 'in:0,1',
         ]);
 
+        $data = $request->only('subject_id', 'question', 'question_type');
+
+        if ($request->hasFile('image')) {
+            // Delete old image if it exists
+            if ($question->image) {
+                Storage::disk('public')->delete($question->image);
+            }
+
+            $imageFile = $request->file('image');
+            $imageName = time() . '_' . Str::slug(pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME))
+                         . '.' . $imageFile->getClientOriginalExtension();
+            $data['image'] = $imageFile->storeAs('questions', $imageName, 'public');
+        }
+
         // Update the question itself
-        $question->update(
-            $request->only('subject_id', 'question', 'question_type')
-        );
+        $question->update($data);
 
         // ── Upsert answers ────────────────────────────────────────────
         // answer_ids[] = existing DB id (or empty string for new rows)
@@ -128,6 +151,10 @@ class QuestionController extends Controller
 
     public function destroy(Question $question)
     {
+        if ($question->image) {
+            Storage::disk('public')->delete($question->image);
+        }
+
         $question->delete();
         return redirect()->route('admin.questions.index')
                          ->with('success', 'Question deleted successfully.');

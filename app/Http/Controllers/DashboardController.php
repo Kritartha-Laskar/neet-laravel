@@ -205,6 +205,13 @@ class DashboardController extends Controller
             'is_active'      => true,
         ]);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Resource uploaded and assigned successfully.'
+            ]);
+        }
+
         return redirect()->route('dashboard')->with('success', 'Resource uploaded and assigned successfully.');
     }
 }

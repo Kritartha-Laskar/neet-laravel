@@ -37,7 +37,17 @@
                                         <span class="text-muted">—</span>
                                     @endif
                                 </td>
-                                <td>{{ Str::limit($question->question, 60) }}</td>
+                                <td>
+                                    <div>{{ Str::limit($question->question, 60) }}</div>
+                                    @if($question->image)
+                                        <div class="mt-1">
+                                            <a href="{{ $question->image_url }}" target="_blank" title="View full image">
+                                                <img src="{{ $question->image_url }}" alt="Question Image"
+                                                     style="max-width: 60px; max-height: 40px; object-fit: cover;" class="img-thumbnail">
+                                            </a>
+                                        </div>
+                                    @endif
+                                </td>
                                 <td>
                                     <span class="badge badge-{{ $question->question_type === 'mcq' ? 'primary' : ($question->question_type === 'msq' ? 'warning' : 'info') }} p-2">
                                         {{ strtoupper($question->question_type) }}

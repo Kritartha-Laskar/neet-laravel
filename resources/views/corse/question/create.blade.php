@@ -19,7 +19,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('admin.questions.store') }}">
+                <form method="POST" action="{{ route('admin.questions.store') }}" enctype="multipart/form-data">
                     @csrf
 
                     {{-- Subject --}}
@@ -44,6 +44,14 @@
                                   class="form-control @error('question') is-invalid @enderror"
                                   placeholder="Enter the question text" required>{{ old('question') }}</textarea>
                         @error('question')<span class="invalid-feedback">{{ $message }}</span>@enderror
+                    </div>
+
+                    {{-- Image --}}
+                    <div class="form-group">
+                        <label for="image">Question Image <small class="text-muted">(Optional)</small></label>
+                        <input type="file" name="image" id="image"
+                               class="form-control @error('image') is-invalid @enderror" accept="image/*">
+                        @error('image')<span class="invalid-feedback">{{ $message }}</span>@enderror
                     </div>
 
                     {{-- Question Type --}}

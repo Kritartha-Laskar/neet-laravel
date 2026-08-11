@@ -700,6 +700,17 @@
                                             <small class="text-muted">Serial position (e.g. 1, 2, 3...) of this item inside the class.</small>
                                         </div>
 
+                                        <!-- Progress Bar Container (Hidden by default) -->
+                                        <div id="upload-progress-container" class="d-none mt-3">
+                                            <div class="progress" style="height: 25px;">
+                                                <div id="upload-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                            </div>
+                                            <div class="d-flex justify-content-between mt-2 text-muted small">
+                                                <span id="upload-progress-status" class="fw-semibold text-primary">Uploading...</span>
+                                                <span id="upload-progress-stats" class="fw-semibold">0.00 MB / 0.00 MB</span>
+                                            </div>
+                                        </div>
+
                                         <div class="modal-footer px-0 pb-0 border-top-0 mt-4">
                                             <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
                                             <button type="submit" id="upload_submit_btn" class="btn btn-success">Upload &amp; Assign</button>
@@ -1078,6 +1089,136 @@
                     videoSource.src = '';
                 });
             }
+        }
+
+        // Handle File upload with progress bar
+        if (uploadAssignForm) {
+            uploadAssignForm.addEventListener('submit', function (e) {
+                const uploadTypeVal = uploadType ? uploadType.value : 'video';
+                if (uploadTypeVal === 'mcq') {
+                    // Submit normally for MCQ
+                    return;
+                }
+
+                // Prevent standard submit for file resource upload
+                e.preventDefault();
+
+                // Disable submit button and close button to prevent double submit/cancelling unexpectedly
+                if (uploadSubmitBtn) {
+                    uploadSubmitBtn.disabled = true;
+                    uploadSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+                }
+                const closeBtn = uploadAssignForm.querySelector('[data-dismiss="modal"], [data-bs-dismiss="modal"]');
+                if (closeBtn) closeBtn.disabled = true;
+
+                // Show progress container
+                const progressContainer = document.getElementById('upload-progress-container');
+                const progressBar = document.getElementById('upload-progress-bar');
+                const progressStatus = document.getElementById('upload-progress-status');
+                const progressStats = document.getElementById('upload-progress-stats');
+
+                if (progressContainer) progressContainer.classList.remove('d-none');
+                if (progressBar) {
+                    progressBar.style.width = '0%';
+                    progressBar.textContent = '0%';
+                    progressBar.setAttribute('aria-valuenow', '0');
+                }
+                if (progressStatus) progressStatus.textContent = 'Preparing upload...';
+                if (progressStats) progressStats.textContent = '';
+
+                // Create FormData
+                const formData = new FormData(uploadAssignForm);
+
+                // Setup XMLHttpRequest
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', uploadAssignForm.action, true);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.setRequestHeader('X-CSRF-TOKEN', '{{ csrf_token() }}');
+
+                // Track progress
+                xhr.upload.addEventListener('progress', function (event) {
+                    if (event.lengthComputable) {
+                        const percentComplete = Math.round((event.loaded / event.total) * 100);
+                        const loadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
+                        const totalMB = (event.total / (1024 * 1024)).toFixed(2);
+
+                        if (progressBar) {
+                            progressBar.style.width = percentComplete + '%';
+                            progressBar.textContent = percentComplete + '%';
+                            progressBar.setAttribute('aria-valuenow', percentComplete);
+                        }
+                        if (progressStatus) progressStatus.textContent = 'Uploading file...';
+                        if (progressStats) progressStats.textContent = loadedMB + ' MB / ' + totalMB + ' MB';
+                    }
+                });
+
+                // Request completed
+                xhr.addEventListener('load', function () {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        if (progressStatus) progressStatus.textContent = 'Upload complete! Processing and saving...';
+                        if (progressBar) {
+                            progressBar.classList.remove('bg-success');
+                            progressBar.classList.add('bg-info');
+                        }
+                        // Refresh the page to show the newly added resource
+                        window.location.reload();
+                    } else {
+                        // Error handling
+                        let errorMsg = 'Upload failed with status code ' + xhr.status;
+                        try {
+                            const responseObj = JSON.parse(xhr.responseText);
+                            if (responseObj.message) {
+                                errorMsg = responseObj.message;
+                            } else if (responseObj.errors) {
+                                // Extract validation errors
+                                const errorList = [];
+                                for (const key in responseObj.errors) {
+                                    if (responseObj.errors.hasOwnProperty(key)) {
+                                        errorList.push(responseObj.errors[key].join(', '));
+                                    }
+                                }
+                                if (errorList.length > 0) {
+                                    errorMsg = errorList.join('\n');
+                                }
+                            }
+                        } catch (e) {
+                            // If response is not JSON
+                        }
+
+                        alert('Error:\n' + errorMsg);
+                        if (progressStatus) progressStatus.textContent = 'Upload failed.';
+                        if (uploadSubmitBtn) {
+                            uploadSubmitBtn.disabled = false;
+                            uploadSubmitBtn.innerHTML = 'Upload & Assign';
+                        }
+                        if (closeBtn) closeBtn.disabled = false;
+                    }
+                });
+
+                // Connection error
+                xhr.addEventListener('error', function () {
+                    alert('Network error occurred during the upload. Please check your connection and php.ini limits.');
+                    if (progressStatus) progressStatus.textContent = 'Network error.';
+                    if (uploadSubmitBtn) {
+                        uploadSubmitBtn.disabled = false;
+                        uploadSubmitBtn.innerHTML = 'Upload & Assign';
+                    }
+                    if (closeBtn) closeBtn.disabled = false;
+                });
+
+                // Aborted upload
+                xhr.addEventListener('abort', function () {
+                    if (progressStatus) progressStatus.textContent = 'Upload aborted.';
+                    if (uploadSubmitBtn) {
+                        uploadSubmitBtn.disabled = false;
+                        uploadSubmitBtn.innerHTML = 'Upload & Assign';
+                    }
+                    if (closeBtn) closeBtn.disabled = false;
+                });
+
+                // Send request
+                xhr.send(formData);
+            });
         }
     })();
     </script>

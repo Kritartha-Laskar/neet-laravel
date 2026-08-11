@@ -19,7 +19,7 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('admin.questions.update', $question->id) }}">
+                <form method="POST" action="{{ route('admin.questions.update', $question->id) }}" enctype="multipart/form-data">
                     @csrf @method('PUT')
 
                     {{-- Subject --}}
@@ -45,6 +45,21 @@
                                   class="form-control @error('question') is-invalid @enderror"
                                   required>{{ old('question', $question->question) }}</textarea>
                         @error('question')<span class="invalid-feedback">{{ $message }}</span>@enderror
+                    </div>
+
+                    {{-- Image --}}
+                    <div class="form-group">
+                        <label for="image">Question Image <small class="text-muted">(Optional)</small></label>
+                        @if($question->image)
+                            <div class="mb-2">
+                                <img src="{{ $question->image_url }}" alt="Question Image"
+                                     style="max-width: 150px; max-height: 150px;" class="img-thumbnail d-block">
+                                <small class="text-muted">Current image. Upload a new one to replace it.</small>
+                            </div>
+                        @endif
+                        <input type="file" name="image" id="image"
+                               class="form-control @error('image') is-invalid @enderror" accept="image/*">
+                        @error('image')<span class="invalid-feedback">{{ $message }}</span>@enderror
                     </div>
 
                     {{-- Question Type --}}

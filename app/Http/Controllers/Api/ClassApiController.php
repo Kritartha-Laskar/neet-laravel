@@ -68,6 +68,7 @@ class ClassApiController extends Controller
             'id'           => $q->id,
             'item_type'    => 'question',
             'question'     => $q->question,
+            'image_url'    => $q->image_url,
             'type'         => $q->question_type,
             'question_type'=> $q->question_type,
             'sort_order'   => $q->sort_order,

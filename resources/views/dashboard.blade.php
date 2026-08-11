@@ -1134,8 +1134,8 @@
                 if (progressStatus) progressStatus.textContent = 'Preparing upload...';
                 if (progressStats) progressStats.textContent = '';
 
-                // Chunk parameters: 1.5MB per chunk (to stay safely under server's 2MB limit)
-                const chunkSize = 1.5 * 1024 * 1024;
+                // Chunk parameters: 900KB per chunk (to stay safely under server's 1MB/2MB default limits)
+                const chunkSize = 900 * 1024;
                 const totalChunks = Math.ceil(file.size / chunkSize);
                 const fileUuid = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 

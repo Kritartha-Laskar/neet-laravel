@@ -20,4 +20,9 @@ class Subject extends Model
     {
         return $this->hasMany(Question::class);
     }
+
+    public function studyClasses()
+    {
+        return $this->hasMany(StudyClass::class, 'subject_id')->orderBy('sort_order');
+    }
 }

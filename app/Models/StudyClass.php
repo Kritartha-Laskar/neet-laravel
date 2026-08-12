@@ -11,9 +11,15 @@ class StudyClass extends Model
 
     protected $fillable = [
         'name',
+        'subject_id',
         'description',
         'sort_order',
     ];
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class, 'subject_id');
+    }
 
     /**
      * Get resources belonging to this class, ordered by sort_order serial

@@ -24,6 +24,7 @@ class DashboardController extends Controller
 
         // Load all classes with resources and questions ordered by sort_order
         $classes = StudyClass::with([
+            'subject',
             'resources' => function ($q) {
                 $q->orderBy('sort_order');
             },
@@ -32,9 +33,15 @@ class DashboardController extends Controller
             }
         ])->orderBy('sort_order')->get();
 
+        // Group classes by subject name
+        $groupedClasses = $classes->groupBy(function($c) {
+            return $c->subject ? $c->subject->name : 'General / Unassigned';
+        });
+
         // Load unassigned resources so they can be assigned to classes
         $unassignedResources = Resource::whereNull('study_class_id')->active()->latest()->get();
         $subjects            = Subject::orderBy('name')->get();
+        $courses             = CourseName::orderBy('name')->get();
 
         return view('dashboard', compact(
             'coursesCount',
@@ -42,8 +49,10 @@ class DashboardController extends Controller
             'questionsCount',
             'usersCount',
             'classes',
+            'groupedClasses',
             'unassignedResources',
-            'subjects'
+            'subjects',
+            'courses'
         ));
     }
 
@@ -54,12 +63,14 @@ class DashboardController extends Controller
     {
         $request->validate([
             'name'        => 'required|string|max:191',
+            'subject_id'  => 'required|exists:subjects,id',
             'description' => 'nullable|string|max:500',
             'sort_order'  => 'nullable|integer',
         ]);
 
         StudyClass::create([
             'name'        => $request->name,
+            'subject_id'  => $request->subject_id,
             'description' => $request->description,
             'sort_order'  => $request->sort_order ?? 0,
         ]);
@@ -91,10 +102,21 @@ class DashboardController extends Controller
         ]);
 
         $resource = Resource::find($request->resource_id);
-        $resource->update([
+        $studyClass = StudyClass::find($request->study_class_id);
+
+        $updateData = [
             'study_class_id' => $request->study_class_id,
             'sort_order'     => $request->sort_order ?? 0,
-        ]);
+        ];
+
+        if ($studyClass && $studyClass->subject_id) {
+            $updateData['subject_id'] = $studyClass->subject_id;
+            if ($studyClass->subject) {
+                $updateData['subject'] = $studyClass->subject->name;
+            }
+        }
+
+        $resource->update($updateData);
 
         return redirect()->route('dashboard')->with('success', 'Resource assigned to class successfully.');
     }
@@ -136,12 +158,14 @@ class DashboardController extends Controller
     {
         $request->validate([
             'name'        => 'required|string|max:191',
+            'subject_id'  => 'required|exists:subjects,id',
             'description' => 'nullable|string|max:500',
             'sort_order'  => 'nullable|integer',
         ]);
 
         $studyClass->update([
             'name'        => $request->name,
+            'subject_id'  => $request->subject_id,
             'description' => $request->description,
             'sort_order'  => $request->sort_order ?? 0,
         ]);
@@ -161,7 +185,8 @@ class DashboardController extends Controller
             'title'          => 'required|string|max:191',
             'description'    => 'nullable|string|max:1000',
             'type'           => 'required|in:video,pdf,image',
-            'subject'        => 'nullable|string|max:191',
+            'course_id'      => 'nullable|exists:course_names,id',
+            'subject_id'     => 'nullable|exists:subjects,id',
             'study_class_id' => 'required|exists:study_classes,id',
             'sort_order'     => 'nullable|integer|min:0',
         ];
@@ -222,8 +247,26 @@ class DashboardController extends Controller
             $fileSize = $uploadedFile->getSize();
         }
 
+        $subjectId = $request->subject_id;
+        if (!$subjectId && $request->filled('study_class_id')) {
+            $studyClass = StudyClass::find($request->study_class_id);
+            if ($studyClass) {
+                $subjectId = $studyClass->subject_id;
+            }
+        }
+
+        $subjectName = null;
+        if ($subjectId) {
+            $subjObj = Subject::find($subjectId);
+            if ($subjObj) {
+                $subjectName = $subjObj->name;
+            }
+        }
+
         Resource::create([
             'study_class_id' => $request->study_class_id,
+            'course_id'      => $request->course_id,
+            'subject_id'     => $subjectId,
             'sort_order'     => $request->sort_order ?? 0,
             'title'          => $request->title,
             'description'    => $request->description,
@@ -233,7 +276,7 @@ class DashboardController extends Controller
             'mime_type'      => $mimeType,
             'file_size'      => $fileSize,
             'thumbnail_path' => $thumbnailPath,
-            'subject'        => $request->subject,
+            'subject'        => $subjectName,
             'is_active'      => true,
         ]);
 

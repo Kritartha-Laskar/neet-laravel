@@ -22,14 +22,27 @@
                 <form method="POST" action="{{ route('admin.questions.update', $question->id) }}" enctype="multipart/form-data">
                     @csrf @method('PUT')
 
+                    <div class="form-group mb-3">
+                        <label for="course_id">Course <span class="text-danger">*</span></label>
+                        <select name="course_id" id="course_id" class="form-select form-select-lg" required>
+                            <option value="">-- Select Course --</option>
+                            @foreach($courses as $course)
+                                <option value="{{ $course->id }}" 
+                                    {{ old('course_id', optional($question->subject)->course_id) == $course->id ? 'selected' : '' }}>
+                                    {{ $course->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     {{-- Subject --}}
-                    <div class="form-group">
+                    <div class="form-group mb-3">
                         <label for="subject_id">Subject <span class="text-danger">*</span></label>
                         <select name="subject_id" id="subject_id"
                                 class="form-select form-select-lg @error('subject_id') is-invalid @enderror" required>
                             <option value="">-- Select Subject --</option>
                             @foreach($subjects as $subject)
-                                <option value="{{ $subject->id }}"
+                                <option value="{{ $subject->id }}" data-course-id="{{ $subject->course_id }}"
                                     {{ old('subject_id', $question->subject_id) == $subject->id ? 'selected' : '' }}>
                                     {{ $subject->name }}
                                 </option>
@@ -209,6 +222,41 @@
         btn.closest('.answer-row').remove();
         reLabel();
     });
+
+    // Course -> Subject filtering logic
+    const courseSelect = document.getElementById('course_id');
+    const subjectSelect = document.getElementById('subject_id');
+
+    if (courseSelect && subjectSelect) {
+        const allSubjectOptions = Array.from(subjectSelect.options);
+        
+        courseSelect.addEventListener('change', function () {
+            const selectedCourseId = this.value;
+            
+            // Clear current options
+            subjectSelect.innerHTML = '';
+            
+            // Always add the default option
+            subjectSelect.appendChild(allSubjectOptions[0]);
+            
+            // Filter and append options
+            allSubjectOptions.slice(1).forEach(opt => {
+                const optCourseId = opt.getAttribute('data-course-id');
+                if (!selectedCourseId || optCourseId === selectedCourseId) {
+                    subjectSelect.appendChild(opt.cloneNode(true));
+                }
+            });
+            
+            subjectSelect.value = '';
+        });
+
+        // Trigger change initially to filter if a course was pre-selected (old values)
+        if (courseSelect.value) {
+            const tempVal = subjectSelect.value;
+            courseSelect.dispatchEvent(new Event('change'));
+            subjectSelect.value = tempVal;
+        }
+    }
 })();
 </script>
 @endpush

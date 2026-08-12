@@ -48,16 +48,16 @@
 
                                 <div class="form-group">
                                     <input
-                                        type="text"
-                                        class="form-control form-control-lg @error('user_name') is-invalid @enderror"
-                                        id="user_name"
-                                        name="user_name"
-                                        placeholder="Username"
-                                        value="{{ old('user_name') }}"
+                                        type="email"
+                                        class="form-control form-control-lg @error('gmail') is-invalid @enderror"
+                                        id="gmail"
+                                        name="gmail"
+                                        placeholder="Gmail Address"
+                                        value="{{ old('gmail') }}"
                                         required
                                         autofocus
                                     >
-                                    @error('user_name')
+                                    @error('gmail')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror
                                 </div>

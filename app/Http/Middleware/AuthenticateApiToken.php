@@ -45,6 +45,13 @@ class AuthenticateApiToken
             ], 401);
         }
 
+        if ((int)$user->role === 3) {
+            return response()->json([
+                'success' => false,
+                'message' => 'you are not authorised to acces this application'
+            ], 403);
+        }
+
         // Log the user in for the current request context
         Auth::setUser($user);
 

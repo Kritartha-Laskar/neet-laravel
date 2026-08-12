@@ -60,11 +60,26 @@
                                   class="form-control" placeholder="Optional description">{{ old('description') }}</textarea>
                     </div>
 
-                    {{-- Subject tag --}}
+                    {{-- Course selector --}}
                     <div class="form-group">
-                        <label for="subject">Subject Tag <small class="text-muted">(optional)</small></label>
-                        <input type="text" name="subject" id="subject" class="form-control"
-                               value="{{ old('subject') }}" placeholder="e.g. Biology, Physics">
+                        <label for="course_id">Course <small class="text-muted">(optional)</small></label>
+                        <select name="course_id" id="course_id" class="form-select form-control">
+                            <option value="">-- Choose Course --</option>
+                            @foreach($courses as $course)
+                                <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>{{ $course->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Subject selector --}}
+                    <div class="form-group">
+                        <label for="subject_id">Subject <small class="text-muted">(optional)</small></label>
+                        <select name="subject_id" id="subject_id" class="form-select form-control">
+                            <option value="">-- Choose Subject --</option>
+                            @foreach($subjects as $subj)
+                                <option value="{{ $subj->id }}" data-course-id="{{ $subj->course_id }}" {{ old('subject_id') == $subj->id ? 'selected' : '' }}>{{ $subj->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
                     {{-- File upload — shown based on type --}}
@@ -222,6 +237,42 @@
             if (w >= 90) clearInterval(iv);
         }, 400);
     });
+
+    // Course -> Subject filtering logic
+    const courseIdSelect = document.getElementById('course_id');
+    const subjectIdSelect = document.getElementById('subject_id');
+
+    if (courseIdSelect && subjectIdSelect) {
+        const allSubjectOptions = Array.from(subjectIdSelect.options);
+        
+        courseIdSelect.addEventListener('change', function () {
+            const selectedCourseId = this.value;
+            
+            // Clear current options
+            subjectIdSelect.innerHTML = '';
+            
+            // Always add the default option
+            const defaultOpt = allSubjectOptions[0];
+            subjectIdSelect.appendChild(defaultOpt);
+            
+            // Filter and append options
+            allSubjectOptions.slice(1).forEach(opt => {
+                const optCourseId = opt.getAttribute('data-course-id');
+                if (!selectedCourseId || optCourseId === selectedCourseId) {
+                    subjectIdSelect.appendChild(opt.cloneNode(true));
+                }
+            });
+            
+            subjectIdSelect.value = '';
+        });
+
+        // Trigger change event to filter initially if old() values are set
+        if (courseIdSelect.value) {
+            const prevSubjId = subjectIdSelect.value;
+            courseIdSelect.dispatchEvent(new Event('change'));
+            subjectIdSelect.value = prevSubjId;
+        }
+    }
 })();
 </script>
 @endpush

@@ -12,6 +12,8 @@ class Resource extends Model
 
     protected $fillable = [
         'study_class_id',
+        'course_id',
+        'subject_id',
         'title',
         'description',
         'type',
@@ -28,6 +30,16 @@ class Resource extends Model
     public function studyClass()
     {
         return $this->belongsTo(StudyClass::class, 'study_class_id');
+    }
+
+    public function course()
+    {
+        return $this->belongsTo(CourseName::class, 'course_id');
+    }
+
+    public function subjectModel()
+    {
+        return $this->belongsTo(Subject::class, 'subject_id');
     }
 
     protected $casts = [

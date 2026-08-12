@@ -40,7 +40,7 @@ class AuthController extends Controller
             'name'      => 'required|string|max:191',
             'user_name' => 'required|string|max:191|unique:users,user_name',
             'gmail'     => 'required|email|max:191|unique:users,gmail',
-            'phone_no'  => 'nullable|string|max:20',
+            'phone_no'  => 'nullable|string|max:20|unique:users,phone_no',
             'password'  => 'required|string|min:6|confirmed',
         ]);
 
@@ -52,6 +52,7 @@ class AuthController extends Controller
             'password'  => $request->password, // auto-hashed by model cast
             'user_type' => 'user',
             'status'    => 'active',
+            'role'      => 3,
         ]);
 
         Auth::login($user);
@@ -64,13 +65,13 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'user_name' => 'required|string',
-            'password'  => 'required|string',
+            'gmail'    => 'required|email',
+            'password' => 'required|string',
         ]);
 
         $credentials = [
-            'user_name' => $request->user_name,
-            'password'  => $request->password,
+            'gmail'    => $request->gmail,
+            'password' => $request->password,
         ];
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -79,8 +80,8 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'user_name' => 'Invalid username or password.',
-        ])->withInput($request->only('user_name'));
+            'gmail' => 'Invalid email or password.',
+        ])->withInput($request->only('gmail'));
     }
 
     /**

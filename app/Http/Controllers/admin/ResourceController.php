@@ -4,6 +4,8 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Resource;
+use App\Models\CourseName;
+use App\Models\Subject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -28,7 +30,9 @@ class ResourceController extends Controller
 
     public function create()
     {
-        return view('corse.resource.create');
+        $courses = CourseName::orderBy('name')->get();
+        $subjects = Subject::orderBy('name')->get();
+        return view('corse.resource.create', compact('courses', 'subjects'));
     }
 
     public function store(Request $request)
@@ -40,7 +44,8 @@ class ResourceController extends Controller
             'title'       => 'required|string|max:191',
             'description' => 'nullable|string|max:1000',
             'type'        => 'required|in:video,pdf,image',
-            'subject'     => 'nullable|string|max:191',
+            'course_id'   => 'nullable|exists:course_names,id',
+            'subject_id'  => 'nullable|exists:subjects,id',
         ];
 
         if ($type === 'video') {
@@ -69,6 +74,14 @@ class ResourceController extends Controller
             $thumbnailPath = $thumb->storeAs('resources/thumbnails', $thumbName, 'public');
         }
 
+        $subjectName = null;
+        if ($request->filled('subject_id')) {
+            $subjObj = Subject::find($request->subject_id);
+            if ($subjObj) {
+                $subjectName = $subjObj->name;
+            }
+        }
+
         Resource::create([
             'title'          => $request->title,
             'description'    => $request->description,
@@ -78,7 +91,9 @@ class ResourceController extends Controller
             'mime_type'      => $uploadedFile->getMimeType(),
             'file_size'      => $uploadedFile->getSize(),
             'thumbnail_path' => $thumbnailPath,
-            'subject'        => $request->subject,
+            'course_id'      => $request->course_id,
+            'subject_id'     => $request->subject_id,
+            'subject'        => $subjectName,
             'is_active'      => true,
         ]);
 

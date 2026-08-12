@@ -20,8 +20,9 @@ class QuestionController extends Controller
 
     public function create()
     {
+        $courses  = \App\Models\CourseName::orderBy('name')->get();
         $subjects = Subject::orderBy('name')->get();
-        return view('corse.question.create', compact('subjects'));
+        return view('corse.question.create', compact('subjects', 'courses'));
     }
 
     public function store(Request $request)
@@ -69,10 +70,11 @@ class QuestionController extends Controller
 
     public function edit(Question $question)
     {
+        $courses  = \App\Models\CourseName::orderBy('name')->get();
         $subjects = Subject::orderBy('name')->get();
         // Load answers so the edit view can pre-fill them
         $question->load('answers');
-        return view('corse.question.edit', compact('question', 'subjects'));
+        return view('corse.question.edit', compact('question', 'subjects', 'courses'));
     }
 
     public function update(Request $request, Question $question)

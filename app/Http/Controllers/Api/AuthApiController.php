@@ -19,7 +19,7 @@ class AuthApiController extends Controller
             'name'      => 'required|string|max:191',
             'user_name' => 'required|string|max:191|unique:users,user_name',
             'gmail'     => 'required|email|max:191|unique:users,gmail',
-            'phone_no'  => 'nullable|string|max:20',
+            'phone_no'  => 'nullable|string|max:20|unique:users,phone_no',
             'password'  => 'required|string|min:6|confirmed',
         ]);
 
@@ -33,6 +33,7 @@ class AuthApiController extends Controller
             'password'  => Hash::make($validated['password']),
             'user_type' => 'user',
             'status'    => 'active',
+            'role'      => 3,
             'api_token' => $token,
         ]);
 
@@ -59,19 +60,27 @@ class AuthApiController extends Controller
     // ──────────────────────────────────────────────────────────────
     public function login(Request $request)
     {
+        // Support either 'email' or 'user_name' as the input field name
+        $loginKey = $request->has('email') ? 'email' : 'user_name';
+
         $request->validate([
-            'user_name' => 'required|string',
-            'password'  => 'required|string',
+            $loginKey  => 'required|string',
+            'password' => 'required|string',
         ]);
 
-        $user = User::where('user_name', $request->user_name)
+        $loginValue = $request->input($loginKey);
+
+        $user = User::where(function($query) use ($loginValue) {
+                        $query->where('gmail', $loginValue)
+                              ->orWhere('user_name', $loginValue);
+                    })
                     ->whereNull('deleted_at')
                     ->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid username or password.',
+                'message' => 'Invalid email/username or password.',
             ], 401);
         }
 

@@ -168,6 +168,16 @@
                     </a>
                 </li>
 
+                @if(Auth::user()->role === 7)
+                <li class="nav-item nav-category"><span class="nav-link">Users</span></li>
+                <li class="nav-item {{ request()->routeIs('admin.users.create') ? 'active' : '' }}">
+                    <a class="nav-link" href="{{ route('admin.users.create') }}">
+                        <span class="menu-title">Create Admin</span>
+                        <i class="icon-user-follow menu-icon"></i>
+                    </a>
+                </li>
+                @endif
+
                 <li class="nav-item nav-category"><span class="nav-link">Account</span></li>
                 <li class="nav-item">
                     <form method="POST" action="{{ route('logout') }}">

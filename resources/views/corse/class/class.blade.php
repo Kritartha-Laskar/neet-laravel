@@ -371,6 +371,15 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label class="form-label fw-bold">Subject <span class="text-danger">*</span></label>
+                        <select name="subject_id" class="form-select" required>
+                            <option value="">-- Choose Subject --</option>
+                            @foreach($subjects as $subj)
+                                <option value="{{ $subj->id }}">{{ $subj->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-bold">Class Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" placeholder="e.g. Class 1, Class 2, Biology Class" required>
                     </div>
@@ -404,6 +413,15 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Subject <span class="text-danger">*</span></label>
+                        <select name="subject_id" class="form-select" required>
+                            <option value="">-- Choose Subject --</option>
+                            @foreach($subjects as $subj)
+                                <option value="{{ $subj->id }}" {{ $selectedClass->subject_id == $subj->id ? 'selected' : '' }}>{{ $subj->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Class Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" value="{{ $selectedClass->name }}" required>
@@ -500,8 +518,22 @@
                             <input type="file" name="file" class="form-control" required>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label fw-bold">Course (Optional)</label>
+                            <select name="course_id" id="class_upload_course_id" class="form-select">
+                                <option value="">-- Choose Course --</option>
+                                @foreach($courses as $course)
+                                    <option value="{{ $course->id }}">{{ $course->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label fw-bold">Subject (Optional)</label>
-                            <input type="text" name="subject" class="form-control" placeholder="e.g. biology" value="{{ $selectedClass->description }}">
+                            <select name="subject_id" id="class_upload_subject_id" class="form-select">
+                                <option value="">-- Choose Subject --</option>
+                                @foreach($subjects as $subj)
+                                    <option value="{{ $subj->id }}" data-course-id="{{ $subj->course_id }}">{{ $subj->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Serial Position Order</label>
@@ -707,6 +739,35 @@
                 });
             });
         });
+
+        // Course -> Subject filtering logic
+        var classUploadCourseId = document.getElementById('class_upload_course_id');
+        var classUploadSubjectId = document.getElementById('class_upload_subject_id');
+
+        if (classUploadCourseId && classUploadSubjectId) {
+            var allClassSubjectOptions = Array.from(classUploadSubjectId.options);
+            
+            classUploadCourseId.addEventListener('change', function () {
+                var selectedCourseId = this.value;
+                
+                // Clear current options
+                classUploadSubjectId.innerHTML = '';
+                
+                // Always add the default option
+                var defaultOpt = allClassSubjectOptions[0];
+                classUploadSubjectId.appendChild(defaultOpt);
+                
+                // Filter and append options
+                allClassSubjectOptions.slice(1).forEach(function(opt) {
+                    var optCourseId = opt.getAttribute('data-course-id');
+                    if (!selectedCourseId || optCourseId === selectedCourseId) {
+                        classUploadSubjectId.appendChild(opt.cloneNode(true));
+                    }
+                });
+                
+                classUploadSubjectId.value = '';
+            });
+        }
     });
 
     function stopVideoPlayer() {

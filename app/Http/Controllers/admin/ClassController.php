@@ -32,12 +32,14 @@ class ClassController extends Controller
 
         $unassignedResources = Resource::whereNull('study_class_id')->active()->latest()->get();
         $subjects            = Subject::orderBy('name')->get();
+        $courses             = \App\Models\CourseName::orderBy('name')->get();
 
         return view('corse.class.class', compact(
             'classes',
             'selectedClass',
             'unassignedResources',
-            'subjects'
+            'subjects',
+            'courses'
         ));
     }
 
@@ -48,12 +50,14 @@ class ClassController extends Controller
     {
         $request->validate([
             'name'        => 'required|string|max:191',
+            'subject_id'  => 'required|exists:subjects,id',
             'description' => 'nullable|string|max:500',
             'sort_order'  => 'nullable|integer',
         ]);
 
         $class = StudyClass::create([
             'name'        => $request->name,
+            'subject_id'  => $request->subject_id,
             'description' => $request->description,
             'sort_order'  => $request->sort_order ?? 0,
         ]);
@@ -69,12 +73,14 @@ class ClassController extends Controller
     {
         $request->validate([
             'name'        => 'required|string|max:191',
+            'subject_id'  => 'required|exists:subjects,id',
             'description' => 'nullable|string|max:500',
             'sort_order'  => 'nullable|integer',
         ]);
 
         $class->update([
             'name'        => $request->name,
+            'subject_id'  => $request->subject_id,
             'description' => $request->description,
             'sort_order'  => $request->sort_order ?? 0,
         ]);
@@ -152,9 +158,17 @@ class ClassController extends Controller
             $imagePath    = $uploadedFile->storeAs($folder, $fileName, 'public');
         }
 
+        $subjectId = $request->subject_id;
+        if (!$subjectId && $request->filled('study_class_id')) {
+            $studyClass = StudyClass::find($request->study_class_id);
+            if ($studyClass) {
+                $subjectId = $studyClass->subject_id;
+            }
+        }
+
         $question = Question::create([
             'study_class_id' => $request->study_class_id,
-            'subject_id'     => $request->subject_id,
+            'subject_id'     => $subjectId,
             'question'       => $request->question,
             'image'          => $imagePath,
             'question_type'  => 'mcq',
@@ -208,10 +222,22 @@ class ClassController extends Controller
             'sort_order'     => 'nullable|integer',
         ]);
 
-        Resource::where('id', $request->resource_id)->update([
+        $resource = Resource::find($request->resource_id);
+        $studyClass = StudyClass::find($request->study_class_id);
+
+        $updateData = [
             'study_class_id' => $request->study_class_id,
             'sort_order'     => $request->sort_order ?? 1,
-        ]);
+        ];
+
+        if ($studyClass && $studyClass->subject_id) {
+            $updateData['subject_id'] = $studyClass->subject_id;
+            if ($studyClass->subject) {
+                $updateData['subject'] = $studyClass->subject->name;
+            }
+        }
+
+        $resource->update($updateData);
 
         return redirect()->route('admin.classes.index', ['class_id' => $request->study_class_id])
             ->with('success', 'Study material assigned to class.');
@@ -227,7 +253,8 @@ class ClassController extends Controller
         $rules = [
             'title'          => 'required|string|max:191',
             'type'           => 'required|in:video,pdf,image',
-            'subject'        => 'nullable|string|max:191',
+            'course_id'      => 'nullable|exists:course_names,id',
+            'subject_id'     => 'nullable|exists:subjects,id',
             'study_class_id' => 'required|exists:study_classes,id',
             'sort_order'     => 'nullable|integer',
         ];
@@ -257,8 +284,26 @@ class ClassController extends Controller
             $thumbnailPath = $thumb->storeAs('resources/thumbnails', $thumbName, 'public');
         }
 
+        $subjectId = $request->subject_id;
+        if (!$subjectId && $request->filled('study_class_id')) {
+            $studyClass = StudyClass::find($request->study_class_id);
+            if ($studyClass) {
+                $subjectId = $studyClass->subject_id;
+            }
+        }
+
+        $subjectName = null;
+        if ($subjectId) {
+            $subjObj = Subject::find($subjectId);
+            if ($subjObj) {
+                $subjectName = $subjObj->name;
+            }
+        }
+
         Resource::create([
             'study_class_id' => $request->study_class_id,
+            'course_id'      => $request->course_id,
+            'subject_id'     => $subjectId,
             'sort_order'     => $request->sort_order ?? 1,
             'title'          => $request->title,
             'description'    => $request->description,
@@ -268,7 +313,7 @@ class ClassController extends Controller
             'mime_type'      => $uploadedFile->getMimeType(),
             'file_size'      => $uploadedFile->getSize(),
             'thumbnail_path' => $thumbnailPath,
-            'subject'        => $request->subject,
+            'subject'        => $subjectName,
             'is_active'      => true,
         ]);
 

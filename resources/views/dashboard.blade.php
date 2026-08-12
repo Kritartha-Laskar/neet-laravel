@@ -282,162 +282,170 @@
                                             <p class="mb-0">Click the "Add Class" button above to create your first class category.</p>
                                         </div>
                                     @else
-                                        <div class="row">
-                                            @foreach($classes as $class)
-                                                <div class="col-md-12 mb-4">
-                                                    <div class="card border shadow-sm" style="border-radius: 10px;">
-                                                        <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <h5 class="mb-0 fw-bold text-dark">{{ $class->name }}</h5>
-                                                                <small class="text-muted">{{ $class->description ?? 'No description provided.' }}</small>
-                                                            </div>
-                                                            <div class="d-flex align-items-center gap-2">
-                                                                <span class="badge badge-info">{{ $class->resources->count() }} Materials</span>
-                                                                <span class="badge bg-purple text-white">{{ $class->questions->count() }} MCQs</span>
-                                                                <button type="button" class="btn btn-purple btn-xs text-white bg-purple" 
-                                                                        data-toggle="modal" data-target="#createMcqModal{{ $class->id }}" 
-                                                                        data-bs-toggle="modal" data-bs-target="#createMcqModal{{ $class->id }}" 
-                                                                        title="Add MCQ Question">
-                                                                    <i class="icon-question"></i> Add MCQ
-                                                                </button>
-                                                                <button type="button" class="btn btn-primary btn-xs edit-class-btn" 
-                                                                        data-id="{{ $class->id }}" 
-                                                                        data-name="{{ $class->name }}" 
-                                                                        data-description="{{ $class->description }}" 
-                                                                        data-sort="{{ $class->sort_order }}"
-                                                                        data-toggle="modal" data-target="#editClassModal"
-                                                                        data-bs-toggle="modal" data-bs-target="#editClassModal"
-                                                                        title="Edit Class">
-                                                                    <i class="icon-pencil"></i>
-                                                                </button>
-                                                                <form action="{{ route('dashboard.classes.destroy', $class->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this class? Materials inside it will be unassigned.')">
-                                                                    @csrf @method('DELETE')
-                                                                    <button type="submit" class="btn btn-danger btn-xs" title="Delete Class">
-                                                                        <i class="icon-trash"></i>
-                                                                    </button>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                        <div class="card-body p-3">
-                                                            @if($class->resources->isEmpty() && $class->questions->isEmpty())
-                                                                <p class="text-muted text-center py-3 mb-0 small">No study materials or MCQ questions assigned to this class yet. Click "Assign Study Material" or "Add MCQ" to add some!</p>
-                                                            @else
-                                                                <div class="table-responsive">
-                                                                    <table class="table table-hover align-middle mb-0">
-                                                                        <thead class="table-light">
-                                                                            <tr>
-                                                                                <th style="width: 80px;">Serial / Order</th>
-                                                                                <th>Title / Question</th>
-                                                                                <th>Type</th>
-                                                                                <th>Subject</th>
-                                                                                <th>Info</th>
-                                                                                <th>Actions</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {{-- 1. Class Resources (Videos, PDFs, Images) --}}
-                                                                            @foreach($class->resources as $res)
-                                                                                <tr>
-                                                                                    <td>
-                                                                                        <input type="number" class="form-control form-control-sm res-sort-input text-center fw-bold" 
-                                                                                               data-id="{{ $res->id }}" value="{{ $res->sort_order }}" style="width: 70px;">
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <div class="fw-semibold">{{ $res->title }}</div>
-                                                                                        <small class="text-muted text-truncate d-inline-block" style="max-width: 300px;">{{ $res->file_name }}</small>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        @if($res->type === 'video')
-                                                                                            <span class="badge badge-primary"><i class="icon-film me-1"></i> Video</span>
-                                                                                        @elseif($res->type === 'pdf')
-                                                                                            <span class="badge badge-danger"><i class="icon-doc me-1"></i> PDF</span>
-                                                                                        @else
-                                                                                            <span class="badge badge-success"><i class="icon-picture me-1"></i> Image</span>
-                                                                                        @endif
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <span class="text-muted">{{ $res->subject ?? '—' }}</span>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <span class="text-muted">{{ $res->file_size_human }}</span>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                      <div class="d-flex gap-2">
-                                                                             @if($res->type === 'video')
-                                                                                 <button type="button" class="btn btn-outline-primary btn-xs play-video-btn" 
-                                                                                         data-toggle="modal" data-target="#videoPlayerModal"
-                                                                                         data-bs-toggle="modal" data-bs-target="#videoPlayerModal"
-                                                                                         data-url="{{ $res->file_url }}" 
-                                                                                         data-title="{{ $res->title }}">
-                                                                                     <i class="icon-control-play"></i> Play
-                                                                                 </button>
-                                                                             @else
-                                                                                 <a href="{{ $res->file_url }}" target="_blank" class="btn btn-outline-primary btn-xs">
-                                                                                     <i class="icon-link"></i> View
-                                                                                 </a>
-                                                                             @endif
-                                                                             <form action="{{ route('dashboard.resources.remove', $res->id) }}" method="POST">
-                                                                                                                @csrf
-                                                                                                                <button type="submit" class="btn btn-warning btn-xs">
-                                                                                                                    <i class="icon-close"></i> Unassign
-                                                                                                                </button>
-                                                                                                            </form>
-                                                                                        </div>
-                                                                                    </td>
-                                                                                </tr>
-                                                                            @endforeach
+                                        @foreach($groupedClasses as $subjectName => $subjectClasses)
+                                            <div class="mb-5 border-bottom pb-4">
+                                                <h3 class="mb-4 text-primary fw-bold">
+                                                    <i class="icon-layers me-2 text-danger"></i>{{ $subjectName }}
+                                                </h3>
+                                                <div class="row">
+                                                    @foreach($subjectClasses as $class)
+                                                        <div class="col-md-12 mb-4">
+                                                            <div class="card border shadow-sm" style="border-radius: 10px;">
+                                                                <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <h5 class="mb-0 fw-bold text-dark">{{ $class->name }}</h5>
+                                                                        <small class="text-muted">{{ $class->description ?? 'No description provided.' }}</small>
+                                                                    </div>
+                                                                    <div class="d-flex align-items-center gap-2">
+                                                                        <span class="badge badge-info">{{ $class->resources->count() }} Materials</span>
+                                                                        <span class="badge bg-purple text-white">{{ $class->questions->count() }} MCQs</span>
+                                                                        <button type="button" class="btn btn-purple btn-xs text-white bg-purple" 
+                                                                                data-toggle="modal" data-target="#createMcqModal{{ $class->id }}" 
+                                                                                data-bs-toggle="modal" data-bs-target="#createMcqModal{{ $class->id }}" 
+                                                                                title="Add MCQ Question">
+                                                                            <i class="icon-question"></i> Add MCQ
+                                                                        </button>
+                                                                        <button type="button" class="btn btn-primary btn-xs edit-class-btn" 
+                                                                                data-id="{{ $class->id }}" 
+                                                                                data-name="{{ $class->name }}" 
+                                                                                data-description="{{ $class->description }}" 
+                                                                                data-sort="{{ $class->sort_order }}"
+                                                                                data-subject-id="{{ $class->subject_id }}"
+                                                                                data-toggle="modal" data-target="#editClassModal"
+                                                                                data-bs-toggle="modal" data-bs-target="#editClassModal"
+                                                                                title="Edit Class">
+                                                                            <i class="icon-pencil"></i>
+                                                                        </button>
+                                                                        <form action="{{ route('dashboard.classes.destroy', $class->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this class? Materials inside it will be unassigned.')">
+                                                                            @csrf @method('DELETE')
+                                                                            <button type="submit" class="btn btn-danger btn-xs" title="Delete Class">
+                                                                                <i class="icon-trash"></i>
+                                                                            </button>
+                                                                        </form>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="card-body p-3">
+                                                                    @if($class->resources->isEmpty() && $class->questions->isEmpty())
+                                                                        <p class="text-muted text-center py-3 mb-0 small">No study materials or MCQ questions assigned to this class yet. Click "Assign Study Material" or "Add MCQ" to add some!</p>
+                                                                    @else
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-hover align-middle mb-0">
+                                                                                <thead class="table-light">
+                                                                                    <tr>
+                                                                                        <th style="width: 80px;">Serial / Order</th>
+                                                                                        <th>Title / Question</th>
+                                                                                        <th>Type</th>
+                                                                                        <th>Subject</th>
+                                                                                        <th>Info</th>
+                                                                                        <th>Actions</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    {{-- 1. Class Resources (Videos, PDFs, Images) --}}
+                                                                                    @foreach($class->resources as $res)
+                                                                                        <tr>
+                                                                                            <td>
+                                                                                                <input type="number" class="form-control form-control-sm res-sort-input text-center fw-bold" 
+                                                                                                       data-id="{{ $res->id }}" value="{{ $res->sort_order }}" style="width: 70px;">
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <div class="fw-semibold">{{ $res->title }}</div>
+                                                                                                <small class="text-muted text-truncate d-inline-block" style="max-width: 300px;">{{ $res->file_name }}</small>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                @if($res->type === 'video')
+                                                                                                    <span class="badge badge-primary"><i class="icon-film me-1"></i> Video</span>
+                                                                                                @elseif($res->type === 'pdf')
+                                                                                                    <span class="badge badge-danger"><i class="icon-doc me-1"></i> PDF</span>
+                                                                                                @else
+                                                                                                    <span class="badge badge-success"><i class="icon-picture me-1"></i> Image</span>
+                                                                                                @endif
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <span class="text-muted">{{ $res->subject ?? '—' }}</span>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <span class="text-muted">{{ $res->file_size_human }}</span>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                              <div class="d-flex gap-2">
+                                                                                     @if($res->type === 'video')
+                                                                                         <button type="button" class="btn btn-outline-primary btn-xs play-video-btn" 
+                                                                                                 data-toggle="modal" data-target="#videoPlayerModal"
+                                                                                                 data-bs-toggle="modal" data-bs-target="#videoPlayerModal"
+                                                                                                 data-url="{{ $res->file_url }}" 
+                                                                                                 data-title="{{ $res->title }}">
+                                                                                             <i class="icon-control-play"></i> Play
+                                                                                         </button>
+                                                                                     @else
+                                                                                         <a href="{{ $res->file_url }}" target="_blank" class="btn btn-outline-primary btn-xs">
+                                                                                             <i class="icon-link"></i> View
+                                                                                         </a>
+                                                                                     @endif
+                                                                                     <form action="{{ route('dashboard.resources.remove', $res->id) }}" method="POST">
+                                                                                                                        @csrf
+                                                                                                                        <button type="submit" class="btn btn-warning btn-xs">
+                                                                                                                            <i class="icon-close"></i> Unassign
+                                                                                                                        </button>
+                                                                                                                    </form>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    @endforeach
 
-                                                                            {{-- 2. Class MCQ Questions --}}
-                                                                            @foreach($class->questions as $q)
-                                                                                <tr style="background-color: #fcfaff;">
-                                                                                    <td>
-                                                                                        <input type="number" class="form-control form-control-sm q-sort-input text-center fw-bold text-primary" 
-                                                                                               data-id="{{ $q->id }}" value="{{ $q->sort_order }}" style="width: 70px; border-color: #8f5fe8;">
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <div class="fw-bold text-dark"><i class="icon-question me-1 text-purple"></i> {{ $q->question }}</div>
-                                                                                        <small class="text-muted">{{ $q->answers->count() }} Options (MCQ)</small>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <span class="badge bg-purple text-white"><i class="icon-question me-1"></i> MCQ</span>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <span class="text-muted">{{ optional($q->subject)->name ?? '—' }}</span>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <span class="text-muted small">{{ $q->answers->count() }} Options</span>
-                                                                                    </td>
-                                                                                    <td>
-                                                                                        <div class="d-flex gap-2">
-                                                                                            <button type="button" class="btn btn-outline-purple btn-xs"
-                                                                                                    data-toggle="modal" data-target="#previewMcqModal{{ $q->id }}"
-                                                                                                    data-bs-toggle="modal" data-bs-target="#previewMcqModal{{ $q->id }}">
-                                                                                                <i class="icon-eye"></i> View
-                                                                                            </button>
-                                                                                            <form action="{{ route('admin.classes.destroy-question', $q->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this MCQ question?')">
-                                                                                                @csrf @method('DELETE')
-                                                                                                <button type="submit" class="btn btn-danger btn-xs">
-                                                                                                    <i class="icon-trash"></i> Delete
-                                                                                                </button>
-                                                                                            </form>
-                                                                                        </div>
-                                                                                    </td>
-                                                                                </tr>
-                                                                            @endforeach
-                                                                        </tbody>
-                                                                    </table>
+                                                                                    {{-- 2. Class MCQ Questions --}}
+                                                                                    @foreach($class->questions as $q)
+                                                                                        <tr style="background-color: #fcfaff;">
+                                                                                            <td>
+                                                                                                <input type="number" class="form-control form-control-sm q-sort-input text-center fw-bold text-primary" 
+                                                                                                       data-id="{{ $q->id }}" value="{{ $q->sort_order }}" style="width: 70px; border-color: #8f5fe8;">
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <div class="fw-bold text-dark"><i class="icon-question me-1 text-purple"></i> {{ $q->question }}</div>
+                                                                                                <small class="text-muted">{{ $q->answers->count() }} Options (MCQ)</small>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <span class="badge bg-purple text-white"><i class="icon-question me-1"></i> MCQ</span>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <span class="text-muted">{{ optional($q->subject)->name ?? '—' }}</span>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <span class="text-muted small">{{ $q->answers->count() }} Options</span>
+                                                                                            </td>
+                                                                                            <td>
+                                                                                                <div class="d-flex gap-2">
+                                                                                                    <button type="button" class="btn btn-outline-purple btn-xs"
+                                                                                                            data-toggle="modal" data-target="#previewMcqModal{{ $q->id }}"
+                                                                                                            data-bs-toggle="modal" data-bs-target="#previewMcqModal{{ $q->id }}">
+                                                                                                        <i class="icon-eye"></i> View
+                                                                                                    </button>
+                                                                                                    <form action="{{ route('admin.classes.destroy-question', $q->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this MCQ question?')">
+                                                                                                        @csrf @method('DELETE')
+                                                                                                        <button type="submit" class="btn btn-danger btn-xs">
+                                                                                                            <i class="icon-trash"></i> Delete
+                                                                                                        </button>
+                                                                                                    </form>
+                                                                                                </div>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    @endforeach
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                        <div class="d-flex justify-content-end mt-3">
+                                                                            <button type="button" class="btn btn-secondary btn-sm save-sorting-btn" data-class-id="{{ $class->id }}">
+                                                                                <i class="icon-refresh"></i> Save Serialization Order
+                                                                            </button>
+                                                                        </div>
+                                                                    @endif
                                                                 </div>
-                                                                <div class="d-flex justify-content-end mt-3">
-                                                                    <button type="button" class="btn btn-secondary btn-sm save-sorting-btn" data-class-id="{{ $class->id }}">
-                                                                        <i class="icon-refresh"></i> Save Serialization Order
-                                                                    </button>
-                                                                </div>
-                                                            @endif
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    @endforeach
                                                 </div>
-                                            @endforeach
-                                        </div>
+                                            </div>
+                                        @endforeach
                                     @endif
                                 </div>
                             </div>
@@ -447,9 +455,7 @@
                 </div>
                 <!-- content-wrapper ends -->
 
-                <!-- ══════════════════════════════════════════════════════
-                     MODAL: ADD CLASS
-                ══════════════════════════════════════════════════════ -->
+                <!-- MODAL: ADD CLASS -->
                 <div class="modal fade" id="addClassModal" tabindex="-1" role="dialog" aria-labelledby="addClassModalLabel" aria-hidden="true">
                     <div class="modal-dialog" role="document">
                         <div class="modal-content">
@@ -462,6 +468,15 @@
                                     </button>
                                 </div>
                                 <div class="modal-body">
+                                    <div class="form-group mb-3">
+                                        <label for="class_subject_id" class="fw-semibold">Subject <span class="text-danger">*</span></label>
+                                        <select name="subject_id" id="class_subject_id" class="form-select form-control" required>
+                                            <option value="">-- Choose Subject --</option>
+                                            @foreach($subjects as $subj)
+                                                <option value="{{ $subj->id }}">{{ $subj->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <div class="form-group mb-3">
                                         <label for="class_name" class="fw-semibold">Class Name <span class="text-danger">*</span></label>
                                         <input type="text" name="name" id="class_name" class="form-control" placeholder="e.g. Class One, Class Two" required>
@@ -501,6 +516,15 @@
                                     </button>
                                 </div>
                                 <div class="modal-body">
+                                    <div class="form-group mb-3">
+                                        <label for="edit_class_subject_id" class="fw-semibold">Subject <span class="text-danger">*</span></label>
+                                        <select name="subject_id" id="edit_class_subject_id" class="form-select form-control" required>
+                                            <option value="">-- Choose Subject --</option>
+                                            @foreach($subjects as $subj)
+                                                <option value="{{ $subj->id }}">{{ $subj->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <div class="form-group mb-3">
                                         <label for="edit_class_name" class="fw-semibold">Class Name <span class="text-danger">*</span></label>
                                         <input type="text" name="name" id="edit_class_name" class="form-control" required>
@@ -559,11 +583,20 @@
                                     <form method="POST" action="{{ route('dashboard.resources.assign') }}">
                                         @csrf
                                         <div class="form-group mb-3">
+                                            <label for="assign_existing_subject_id" class="fw-semibold">Subject <span class="text-danger">*</span></label>
+                                            <select name="subject_id" id="assign_existing_subject_id" class="form-select form-control" required>
+                                                <option value="">-- Choose Subject --</option>
+                                                @foreach($subjects as $subj)
+                                                    <option value="{{ $subj->id }}">{{ $subj->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="form-group mb-3">
                                             <label for="study_class_id" class="fw-semibold">Target Class <span class="text-danger">*</span></label>
                                             <select name="study_class_id" id="study_class_id" class="form-select form-control" required>
                                                 <option value="">-- Choose Class --</option>
                                                 @foreach($classes as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                                    <option value="{{ $c->id }}" data-subject-id="{{ $c->subject_id }}">{{ $c->name }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -596,11 +629,21 @@
                                     <form method="POST" id="upload_assign_form" action="{{ route('dashboard.resources.upload_assign') }}" enctype="multipart/form-data">
                                         @csrf
                                         <div class="form-group mb-3">
+                                            <label for="upload_subject_id" class="fw-semibold">Subject <span class="text-danger">*</span></label>
+                                            <select name="subject_id" id="upload_subject_id" class="form-select form-control" required>
+                                                <option value="">-- Choose Subject --</option>
+                                                @foreach($subjects as $subj)
+                                                    <option value="{{ $subj->id }}">{{ $subj->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="form-group mb-3">
                                             <label for="upload_study_class_id" class="fw-semibold">Target Class <span class="text-danger">*</span></label>
                                             <select name="study_class_id" id="upload_study_class_id" class="form-select form-control" required>
                                                 <option value="">-- Choose Class --</option>
                                                 @foreach($classes as $c)
-                                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                                    <option value="{{ $c->id }}" data-subject-id="{{ $c->subject_id }}">{{ $c->name }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -635,11 +678,6 @@
                                             </div>
 
                                             <div class="form-group mb-3">
-                                                <label for="upload_subject" class="fw-semibold">Subject / Topic (Optional)</label>
-                                                <input type="text" name="subject" id="upload_subject" class="form-control" placeholder="e.g. Physics, Biology">
-                                            </div>
-
-                                            <div class="form-group mb-3">
                                                 <label for="upload_description" class="fw-semibold">Description (Optional)</label>
                                                 <textarea name="description" id="upload_description" rows="3" class="form-control" placeholder="Brief details about the resource"></textarea>
                                             </div>
@@ -647,15 +685,6 @@
 
                                         <!-- Container for MCQ Question specific fields -->
                                         <div id="mcq-fields-container" class="d-none">
-                                            <div class="form-group mb-3">
-                                                <label for="upload_subject_id" class="fw-semibold">Subject / Topic <span class="text-danger">*</span></label>
-                                                <select name="subject_id" id="upload_subject_id" class="form-select form-control">
-                                                    <option value="">-- Choose Subject --</option>
-                                                    @foreach($subjects as $subj)
-                                                        <option value="{{ $subj->id }}">{{ $subj->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
 
                                             <div class="form-group mb-3">
                                                 <label for="upload_question" class="fw-semibold">Question Text <span class="text-danger">*</span></label>
@@ -988,10 +1017,12 @@
                 const name = this.dataset.name;
                 const description = this.dataset.description;
                 const sort = this.dataset.sort;
+                const subjectId = this.dataset.subjectId;
 
                 const form = document.getElementById('editClassForm');
                 form.action = `/dashboard/classes/${classId}`;
 
+                document.getElementById('edit_class_subject_id').value = subjectId || '';
                 document.getElementById('edit_class_name').value = name;
                 document.getElementById('edit_class_description').value = description || '';
                 document.getElementById('edit_class_sort').value = sort || 0;
@@ -1279,6 +1310,54 @@
 
                 // Start the upload flow
                 uploadNextChunk();
+            });
+        }
+
+        // Tab 1: Subject -> Class filtering
+        const assignExistingSubject = document.getElementById('assign_existing_subject_id');
+        const assignExistingClass = document.getElementById('study_class_id');
+
+        if (assignExistingSubject && assignExistingClass) {
+            const allClassOptions = Array.from(assignExistingClass.options);
+            
+            assignExistingSubject.addEventListener('change', function () {
+                const selectedSubjectId = this.value;
+                
+                assignExistingClass.innerHTML = '';
+                assignExistingClass.appendChild(allClassOptions[0]);
+                
+                allClassOptions.slice(1).forEach(opt => {
+                    const optSubjectId = opt.getAttribute('data-subject-id');
+                    if (!selectedSubjectId || optSubjectId === selectedSubjectId) {
+                        assignExistingClass.appendChild(opt.cloneNode(true));
+                    }
+                });
+                
+                assignExistingClass.value = '';
+            });
+        }
+
+        // Tab 2: Subject -> Class filtering
+        const uploadSubjectIdSelect = document.getElementById('upload_subject_id');
+        const uploadClassSelect = document.getElementById('upload_study_class_id');
+
+        if (uploadSubjectIdSelect && uploadClassSelect) {
+            const allUploadClassOptions = Array.from(uploadClassSelect.options);
+            
+            uploadSubjectIdSelect.addEventListener('change', function () {
+                const selectedSubjectId = this.value;
+                
+                uploadClassSelect.innerHTML = '';
+                uploadClassSelect.appendChild(allUploadClassOptions[0]);
+                
+                allUploadClassOptions.slice(1).forEach(opt => {
+                    const optSubjectId = opt.getAttribute('data-subject-id');
+                    if (!selectedSubjectId || optSubjectId === selectedSubjectId) {
+                        uploadClassSelect.appendChild(opt.cloneNode(true));
+                    }
+                });
+                
+                uploadClassSelect.value = '';
             });
         }
     })();

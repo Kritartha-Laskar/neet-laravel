@@ -95,12 +95,15 @@
 
                 <li class="nav-item nav-category"><span class="nav-link">Management</span></li>
 
+                {{-- Hidden per user request --}}
+                {{-- 
                 <li class="nav-item {{ request()->routeIs('admin.classes.*') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('admin.classes.index') }}">
                         <span class="menu-title">Classes (Folders)</span>
                         <i class="icon-folder menu-icon"></i>
                     </a>
                 </li>
+                --}}
 
                 <li class="nav-item {{ request()->routeIs('admin.courses.*') ? 'active' : '' }}">
                     <a class="nav-link" data-toggle="collapse" href="#courses" data-bs-toggle="collapse" data-bs-target="#courses" aria-expanded="{{ request()->routeIs('admin.courses.*') ? 'true' : 'false' }}">
@@ -155,10 +158,16 @@
                 </li>
 
                 <li class="nav-item {{ request()->routeIs('admin.question-papers.*') ? 'active' : '' }}">
-                    <a class="nav-link" href="{{ route('admin.question-papers.index') }}">
+                    <a class="nav-link" data-toggle="collapse" href="#question-papers" data-bs-toggle="collapse" data-bs-target="#question-papers" aria-expanded="{{ request()->routeIs('admin.question-papers.*') ? 'true' : 'false' }}">
                         <span class="menu-title">Question Papers</span>
                         <i class="icon-doc menu-icon"></i>
                     </a>
+                    <div class="collapse {{ request()->routeIs('admin.question-papers.*') ? 'show' : '' }}" id="question-papers">
+                        <ul class="nav flex-column sub-menu">
+                            <li class="nav-item"><a class="nav-link" href="{{ route('admin.question-papers.index') }}">All Question Papers</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ route('admin.question-papers.index') }}#create">Create Paper</a></li>
+                        </ul>
+                    </div>
                 </li>
 
                 <li class="nav-item {{ request()->routeIs('admin.resources.*') ? 'active' : '' }}">

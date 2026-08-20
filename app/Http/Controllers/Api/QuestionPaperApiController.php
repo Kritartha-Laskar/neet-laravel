@@ -13,7 +13,7 @@ class QuestionPaperApiController extends Controller
     // ──────────────────────────────────────────────────────────────
     public function index()
     {
-        $papers = QuestionPaper::withCount('questions')
+        $papers = QuestionPaper::with(['subject'])->withCount('questions')
             ->latest()
             ->paginate(10);
 
@@ -24,6 +24,10 @@ class QuestionPaperApiController extends Controller
                 'title'            => $p->title,
                 'description'      => $p->description,
                 'exam_name'        => $p->exam_name,
+                'paper_type'       => $p->paper_type ?? 'combined',
+                'subject_id'       => $p->subject_id,
+                'subject_name'     => optional($p->subject)->name,
+                'subject_quotas'   => $p->subject_quotas,
                 'exam_year'        => $p->exam_year,
                 'total_questions'  => $p->total_questions,
                 'total_marks'      => $p->total_marks,

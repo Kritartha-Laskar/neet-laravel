@@ -14,7 +14,8 @@ class ClassApiController extends Controller
      */
     public function index()
     {
-        $classes = StudyClass::withCount(['resources', 'questions'])
+        $classes = StudyClass::with(['subject'])
+            ->withCount(['resources', 'questions'])
             ->orderBy('sort_order')
             ->get();
 
@@ -28,6 +29,7 @@ class ClassApiController extends Controller
                 'resources_count' => $c->resources_count,
                 'questions_count' => $c->questions_count,
                 'created_at'      => $c->created_at->toDateString(),
+                'subject'         => $c->subject ? $c->subject->name : 'General',
             ]),
         ]);
     }

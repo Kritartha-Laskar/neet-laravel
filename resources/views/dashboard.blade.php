@@ -115,12 +115,15 @@
 
                     <li class="nav-item nav-category"><span class="nav-link">Management</span></li>
 
+                    {{-- Hidden per user request --}}
+                    {{-- 
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('admin.classes.index') }}">
                             <span class="menu-title">Classes (Folders)</span>
                             <i class="icon-folder menu-icon"></i>
                         </a>
                     </li>
+                    --}}
 
                     <li class="nav-item">
                         <a class="nav-link" data-toggle="collapse" href="#courses" data-bs-toggle="collapse" data-bs-target="#courses" aria-expanded="false" aria-controls="courses">
@@ -157,6 +160,19 @@
                             <ul class="nav flex-column sub-menu">
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.questions.index') }}">All Questions</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.questions.create') }}">Add Question</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="collapse" href="#question-papers" data-bs-toggle="collapse" data-bs-target="#question-papers" aria-expanded="false" aria-controls="question-papers">
+                            <span class="menu-title">Question Papers</span>
+                            <i class="icon-doc menu-icon"></i>
+                        </a>
+                        <div class="collapse" id="question-papers">
+                            <ul class="nav flex-column sub-menu">
+                                <li class="nav-item"><a class="nav-link" href="{{ route('admin.question-papers.index') }}">All Question Papers</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('admin.question-papers.index') }}#create">Create Paper</a></li>
                             </ul>
                         </div>
                     </li>
@@ -238,7 +254,8 @@
                         </div>
                     </div>
 
-                    <!-- Classes & Study Materials Management -->
+                    <!-- Classes & Study Materials Management (Disabled) -->
+                    @if(false)
                     <div class="row mt-4">
                         <div class="col-md-12">
                             @if($errors->any())
@@ -451,6 +468,7 @@
                             </div>
                         </div>
                     </div>
+                    @endif
 
                 </div>
                 <!-- content-wrapper ends -->

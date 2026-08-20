@@ -42,7 +42,9 @@ Route::middleware(['auth', 'check.role'])->group(function () {
         Route::resource('questions',       \App\Http\Controllers\admin\QuestionController::class);
         Route::resource('answers',         \App\Http\Controllers\admin\AnswerController::class);
         Route::resource('question-papers', \App\Http\Controllers\admin\QuestionPaperController::class)
-             ->only(['index', 'show', 'store']);
+             ->only(['index', 'show', 'store', 'destroy']);
+        Route::post('question-papers/{questionPaper}/add-questions', [\App\Http\Controllers\admin\QuestionPaperController::class, 'addQuestions'])->name('question-papers.add-questions');
+        Route::delete('question-papers/{questionPaper}/questions/{question}', [\App\Http\Controllers\admin\QuestionPaperController::class, 'removeQuestion'])->name('question-papers.remove-question');
         Route::resource('resources',       \App\Http\Controllers\admin\ResourceController::class)->except(['edit', 'update', 'show']);
         Route::post('resources/{resource}/toggle-status', [\App\Http\Controllers\admin\ResourceController::class, 'toggleStatus'])->name('resources.toggle-status');
     });

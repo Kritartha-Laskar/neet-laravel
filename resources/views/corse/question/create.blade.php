@@ -21,32 +21,53 @@
 
                 <form method="POST" action="{{ route('admin.questions.store') }}" enctype="multipart/form-data">
                     @csrf
+                    @if(request('question_paper_id'))
+                        <input type="hidden" name="question_paper_id" value="{{ request('question_paper_id') }}">
+                        <div class="alert alert-info py-2 small mb-3">
+                            <i class="icon-info me-1"></i> Creating question to attach directly to Question Paper <strong>{{ $paper ? $paper->title : ('#' . request('question_paper_id')) }}</strong>.
+                        </div>
+                    @endif
 
+                    {{-- Course Field (Fixed if set, otherwise Dropdown) --}}
                     <div class="form-group mb-3">
-                        <label for="course_id">Course <span class="text-danger">*</span></label>
-                        <select name="course_id" id="course_id" class="form-select form-select-lg" required>
-                            <option value="">-- Select Course --</option>
-                            @foreach($courses as $course)
-                                <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>
-                                    {{ $course->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <label for="course_id" class="fw-semibold">Course <span class="text-danger">*</span></label>
+                        @if($selectedCourse)
+                            <input type="text" class="form-control form-control-lg bg-light text-dark fw-bold" value="{{ $selectedCourse->name }}" readonly disabled>
+                            <input type="hidden" name="course_id" value="{{ $selectedCourse->id }}">
+                            <small class="text-muted"><i class="icon-lock me-1"></i> Course is fixed based on selected question paper.</small>
+                        @else
+                            <select name="course_id" id="course_id" class="form-select form-select-lg" required>
+                                <option value="">-- Select Course --</option>
+                                @foreach($courses as $course)
+                                    <option value="{{ $course->id }}" {{ (old('course_id', request('course_id')) == $course->id) ? 'selected' : '' }}>
+                                        {{ $course->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @endif
                     </div>
 
-                    {{-- Subject --}}
+                    {{-- Subject Field (Fixed if set, otherwise Dropdown) --}}
                     <div class="form-group mb-3">
-                        <label for="subject_id">Subject <span class="text-danger">*</span></label>
-                        <select name="subject_id" id="subject_id"
-                                class="form-select form-select-lg @error('subject_id') is-invalid @enderror" required>
-                            <option value="">-- Select Subject --</option>
-                            @foreach($subjects as $subject)
-                                <option value="{{ $subject->id }}" data-course-id="{{ $subject->course_id }}" {{ old('subject_id') == $subject->id ? 'selected' : '' }}>
-                                    {{ $subject->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('subject_id')<span class="invalid-feedback">{{ $message }}</span>@enderror
+                        <label for="subject_id" class="fw-semibold">Subject <span class="text-danger">*</span></label>
+                        @if($selectedSubject)
+                            <input type="text" class="form-control form-control-lg bg-light text-success fw-bold" value="{{ $selectedSubject->name }}" readonly disabled>
+                            <input type="hidden" name="subject_id" value="{{ $selectedSubject->id }}">
+                            <small class="text-muted"><i class="icon-lock me-1"></i> Subject is fixed for this Mock Test question paper.</small>
+                        @else
+                            <select name="subject_id" id="subject_id"
+                                    class="form-select form-select-lg @error('subject_id') is-invalid @enderror" required>
+                                <option value="">-- Select Subject --</option>
+                                @foreach($subjects as $subject)
+                                    @if(!$selectedCourse || $subject->course_id == $selectedCourse->id)
+                                        <option value="{{ $subject->id }}" data-course-id="{{ $subject->course_id }}" {{ (old('subject_id', request('subject_id')) == $subject->id) ? 'selected' : '' }}>
+                                            {{ $subject->name }}
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                            @error('subject_id')<span class="invalid-feedback">{{ $message }}</span>@enderror
+                        @endif
                     </div>
 
                     {{-- Question --}}

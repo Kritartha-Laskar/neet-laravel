@@ -44,6 +44,7 @@ class ResourceController extends Controller
             'title'       => 'required|string|max:191',
             'description' => 'nullable|string|max:1000',
             'type'        => 'required|in:video,pdf,image',
+            'sort_order'  => 'nullable|integer|min:1',
             'course_id'   => 'nullable|exists:course_names,id',
             'subject_id'  => 'nullable|exists:subjects,id',
         ];
@@ -82,6 +83,10 @@ class ResourceController extends Controller
             }
         }
 
+        $nextSortOrder = $request->filled('sort_order')
+            ? (int) $request->sort_order
+            : ((Resource::max('sort_order') ?? 0) + 1);
+
         Resource::create([
             'title'          => $request->title,
             'description'    => $request->description,
@@ -94,6 +99,7 @@ class ResourceController extends Controller
             'course_id'      => $request->course_id,
             'subject_id'     => $request->subject_id,
             'subject'        => $subjectName,
+            'sort_order'     => $nextSortOrder,
             'is_active'      => true,
         ]);
 

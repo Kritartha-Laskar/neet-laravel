@@ -38,7 +38,11 @@ class DashboardController extends Controller
             return $c->subject ? $c->subject->name : 'General / Unassigned';
         });
 
-        // Load unassigned resources so they can be assigned to classes
+        // Load videos and images directly for App Home Page Media section
+        $videos = Resource::videos()->orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();
+        $images = Resource::images()->orderBy('sort_order', 'asc')->orderBy('id', 'desc')->get();
+
+        // Load unassigned resources so they can be assigned to classes if needed
         $unassignedResources = Resource::whereNull('study_class_id')->active()->latest()->get();
         $subjects            = Subject::orderBy('name')->get();
         $courses             = CourseName::orderBy('name')->get();
@@ -51,6 +55,8 @@ class DashboardController extends Controller
             'classes',
             'groupedClasses',
             'unassignedResources',
+            'videos',
+            'images',
             'subjects',
             'courses'
         ));

@@ -10,7 +10,7 @@ class Question extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['subject_id', 'study_class_id', 'question', 'image', 'question_type', 'sort_order'];
+    protected $fillable = ['subject_id', 'chapter_id', 'study_class_id', 'question', 'image', 'question_type', 'sort_order'];
 
     protected $with = ['answers'];
 
@@ -29,6 +29,11 @@ class Question extends Model
     public function subject()
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    public function chapter()
+    {
+        return $this->belongsTo(Chapter::class, 'chapter_id');
     }
 
     public function studyClass()

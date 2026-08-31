@@ -152,6 +152,19 @@
                     </li>
 
                     <li class="nav-item">
+                        <a class="nav-link" data-toggle="collapse" href="#chapters" data-bs-toggle="collapse" data-bs-target="#chapters" aria-expanded="false" aria-controls="chapters">
+                            <span class="menu-title">Chapters</span>
+                            <i class="icon-notebook menu-icon"></i>
+                        </a>
+                        <div class="collapse" id="chapters">
+                            <ul class="nav flex-column sub-menu">
+                                <li class="nav-item"><a class="nav-link" href="{{ route('admin.chapters.index') }}">All Chapters</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('admin.chapters.create') }}">Add Chapter</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <li class="nav-item">
                         <a class="nav-link" data-toggle="collapse" href="#questions" data-bs-toggle="collapse" data-bs-target="#questions" aria-expanded="false" aria-controls="questions">
                             <span class="menu-title">Questions</span>
                             <i class="icon-question menu-icon"></i>
@@ -173,6 +186,19 @@
                             <ul class="nav flex-column sub-menu">
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.question-papers.index') }}">All Question Papers</a></li>
                                 <li class="nav-item"><a class="nav-link" href="{{ route('admin.question-papers.index') }}#create">Create Paper</a></li>
+                            </ul>
+                        </div>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="collapse" href="#resources" data-bs-toggle="collapse" data-bs-target="#resources" aria-expanded="false" aria-controls="resources">
+                            <span class="menu-title">Upload Videos &amp; Photos</span>
+                            <i class="icon-cloud-upload menu-icon"></i>
+                        </a>
+                        <div class="collapse" id="resources">
+                            <ul class="nav flex-column sub-menu">
+                                <li class="nav-item"><a class="nav-link" href="{{ route('admin.resources.index') }}">All Videos &amp; Photos</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{{ route('admin.resources.create') }}">Upload Video / Photo</a></li>
                             </ul>
                         </div>
                     </li>
@@ -240,6 +266,26 @@
                                         </div>
                                         <div class="col-md-6 col-xl report-inner-card">
                                             <div class="inner-card-text">
+                                                <span class="report-title">CHAPTERS</span>
+                                                <h4>{{ \App\Models\Chapter::count() }}</h4>
+                                                <span class="report-count">Total Chapters</span>
+                                            </div>
+                                            <div class="inner-card-icon bg-info">
+                                                <i class="icon-notebook"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-xl report-inner-card">
+                                            <div class="inner-card-text">
+                                                <span class="report-title">RESOURCES</span>
+                                                <h4>{{ \App\Models\Resource::count() }}</h4>
+                                                <span class="report-count">Videos &amp; Photos</span>
+                                            </div>
+                                            <div class="inner-card-icon bg-success">
+                                                <i class="icon-film"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-xl report-inner-card">
+                                            <div class="inner-card-text">
                                                 <span class="report-title">USERS</span>
                                                 <h4>{{ \App\Models\User::count() }}</h4>
                                                 <span class="report-count">Total Users</span>
@@ -254,9 +300,152 @@
                         </div>
                     </div>
 
-                    <!-- Classes & Study Materials Management (Disabled) -->
-                    @if(false)
+                    <!-- App Home Page Media (Videos & Photos) Section -->
                     <div class="row mt-4">
+                        <div class="col-md-12">
+                            @if(session('success'))
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    {{ session('success') }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            @endif
+
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <h4 class="mb-1 fw-bold text-dark"><i class="icon-film me-2 text-primary"></i>App Home Page Videos &amp; Photos</h4>
+                                        <p class="text-muted mb-0 small">Directly upload videos (with thumbnail images) and photos with serial numbers for the mobile app home page.</p>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary btn-sm fw-semibold" data-toggle="modal" data-target="#uploadMediaModal" data-bs-toggle="modal" data-bs-target="#uploadMediaModal">
+                                            <i class="icon-cloud-upload me-1"></i> Upload Video / Photo
+                                        </button>
+                                        <a href="{{ route('admin.resources.create') }}" class="btn btn-outline-secondary btn-sm">Full Upload Form</a>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="nav nav-tabs border-bottom-0 mb-3" id="mediaTab" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link active fw-semibold" id="videos-tab" onclick="switchMediaTab('videos')" type="button"><i class="icon-film me-1"></i> Videos ({{ $videos->count() }})</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link fw-semibold" id="images-tab" onclick="switchMediaTab('images')" type="button"><i class="icon-picture me-1"></i> Photos / Images ({{ $images->count() }})</button>
+                                        </li>
+                                    </ul>
+
+                                    <div class="tab-content" id="mediaTabContent">
+                                        {{-- VIDEOS TAB --}}
+                                        <div class="tab-pane fade show active" id="videos-content" role="tabpanel" style="display: block;">
+                                            <div class="table-responsive border rounded">
+                                                <table class="table table-hover align-middle mb-0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th style="width:70px;">Serial #</th>
+                                                            <th style="width:100px;">Thumbnail</th>
+                                                            <th>Title &amp; File</th>
+                                                            <th>MIME / Size</th>
+                                                            <th class="text-center">Status</th>
+                                                            <th class="text-end" style="width:120px;">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse($videos as $video)
+                                                        <tr>
+                                                            <td><span class="badge bg-dark text-white">#{{ $video->sort_order ?? $video->id }}</span></td>
+                                                            <td>
+                                                                @if($video->thumbnail_path)
+                                                                    <img src="{{ $video->thumbnail_url }}" alt="Thumbnail" style="width:60px; height:40px; object-fit:cover;" class="rounded border">
+                                                                @else
+                                                                    <span class="badge bg-light text-muted border">No Thumb</span>
+                                                                @endif
+                                                            </td>
+                                                            <td>
+                                                                <div class="fw-bold text-dark">{{ $video->title }}</div>
+                                                                <small class="text-muted"><i class="icon-paper-clip me-1"></i>{{ $video->file_name }}</small>
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge bg-light text-dark border">{{ strtoupper($video->mime_type ?? 'video') }}</span>
+                                                                <small class="d-block text-muted">{{ $video->file_size_human }}</small>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge bg-{{ $video->is_active ? 'success' : 'secondary' }}">
+                                                                    {{ $video->is_active ? 'Active' : 'Inactive' }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-end">
+                                                                <a href="{{ $video->file_url }}" target="_blank" class="btn btn-xs btn-info py-1 px-2" title="Play Video"><i class="icon-control-play"></i></a>
+                                                                <form action="{{ route('admin.resources.destroy', $video->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this video?')">
+                                                                    @csrf @method('DELETE')
+                                                                    <button class="btn btn-xs btn-danger py-1 px-2" title="Delete"><i class="icon-trash"></i></button>
+                                                                </form>
+                                                            </td>
+                                                        </tr>
+                                                        @empty
+                                                        <tr><td colspan="6" class="text-center text-muted py-4">No videos uploaded yet. Click <a href="javascript:void(0)" onclick="openUploadModal('video')" class="fw-bold text-primary text-decoration-underline">Upload Video / Photo</a> to add one.</td></tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        {{-- PHOTOS TAB --}}
+                                        <div class="tab-pane fade" id="images-content" role="tabpanel" style="display: none;">
+                                            <div class="table-responsive border rounded">
+                                                <table class="table table-hover align-middle mb-0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th style="width:70px;">Serial #</th>
+                                                            <th style="width:100px;">Photo</th>
+                                                            <th>Title &amp; File</th>
+                                                            <th>MIME / Size</th>
+                                                            <th class="text-center">Status</th>
+                                                            <th class="text-end" style="width:120px;">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse($images as $img)
+                                                        <tr>
+                                                            <td><span class="badge bg-dark text-white">#{{ $img->sort_order ?? $img->id }}</span></td>
+                                                            <td>
+                                                                <img src="{{ $img->file_url }}" alt="Photo" style="width:60px; height:40px; object-fit:cover;" class="rounded border">
+                                                            </td>
+                                                            <td>
+                                                                <div class="fw-bold text-dark">{{ $img->title }}</div>
+                                                                <small class="text-muted"><i class="icon-paper-clip me-1"></i>{{ $img->file_name }}</small>
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge bg-light text-dark border">{{ strtoupper($img->mime_type ?? 'image') }}</span>
+                                                                <small class="d-block text-muted">{{ $img->file_size_human }}</small>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge bg-{{ $img->is_active ? 'success' : 'secondary' }}">
+                                                                    {{ $img->is_active ? 'Active' : 'Inactive' }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-end">
+                                                                <a href="{{ $img->file_url }}" target="_blank" class="btn btn-xs btn-info py-1 px-2" title="View Full Image"><i class="icon-eye"></i></a>
+                                                                <form action="{{ route('admin.resources.destroy', $img->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this photo?')">
+                                                                    @csrf @method('DELETE')
+                                                                    <button class="btn btn-xs btn-danger py-1 px-2" title="Delete"><i class="icon-trash"></i></button>
+                                                                </form>
+                                                            </td>
+                                                        </tr>
+                                                        @empty
+                                                        <tr><td colspan="6" class="text-center text-muted py-4">No photos uploaded yet. Click <a href="javascript:void(0)" onclick="openUploadModal('image')" class="fw-bold text-primary text-decoration-underline">Upload Video / Photo</a> to add one.</td></tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Classes & Study Materials Management (Disabled per user request) -->
+                    @if(false)
                         <div class="col-md-12">
                             @if($errors->any())
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -1379,6 +1568,112 @@
             });
         }
     })();
+    </script>
+
+    <!-- QUICK UPLOAD MEDIA MODAL -->
+    <div class="modal fade" id="uploadMediaModal" tabindex="-1" role="dialog" aria-labelledby="uploadMediaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('admin.resources.store') }}" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold" id="uploadMediaModalLabel"><i class="icon-cloud-upload me-2 text-primary"></i>Upload Video / Photo for App</h5>
+                        <button type="button" class="close btn-close" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group mb-3">
+                            <label class="fw-semibold">Media Type <span class="text-danger">*</span></label>
+                            <select name="type" id="dash_media_type" class="form-select form-control" required onchange="toggleDashMediaFields(this.value)">
+                                <option value="video">🎥 Video (MP4, AVI, MOV, WEBM)</option>
+                                <option value="image">🖼️ Photo / Image (JPG, PNG, WEBP, GIF)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="dash_title" class="fw-semibold">Title <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="dash_title" class="form-control" placeholder="Enter title" required>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="dash_sort_order" class="fw-semibold">Serial Number / Order <small class="text-muted">(Optional — e.g. 1, 2, 3)</small></label>
+                            <input type="number" name="sort_order" id="dash_sort_order" min="1" class="form-control" placeholder="Enter serial number (e.g. 1)">
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="dash_file" class="fw-semibold" id="dash_file_label">Video File <span class="text-danger">*</span></label>
+                            <input type="file" name="file" id="dash_file" class="form-control" accept="video/*" required>
+                        </div>
+
+                        <div class="form-group mb-3" id="dash_thumb_group">
+                            <label for="dash_thumbnail" class="fw-semibold">Video Thumbnail Image <small class="text-muted">(Optional)</small></label>
+                            <input type="file" name="thumbnail" id="dash_thumbnail" class="form-control" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary"><i class="icon-cloud-upload me-1"></i> Upload Now</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function switchMediaTab(tabName) {
+        const vBtn = document.getElementById('videos-tab');
+        const iBtn = document.getElementById('images-tab');
+        const vPane = document.getElementById('videos-content');
+        const iPane = document.getElementById('images-content');
+
+        if (tabName === 'videos') {
+            if (vBtn) vBtn.classList.add('active');
+            if (iBtn) iBtn.classList.remove('active');
+            if (vPane) { vPane.classList.add('show', 'active'); vPane.style.display = 'block'; }
+            if (iPane) { iPane.classList.remove('show', 'active'); iPane.style.display = 'none'; }
+        } else {
+            if (iBtn) iBtn.classList.add('active');
+            if (vBtn) vBtn.classList.remove('active');
+            if (iPane) { iPane.classList.add('show', 'active'); iPane.style.display = 'block'; }
+            if (vPane) { vPane.classList.remove('show', 'active'); vPane.style.display = 'none'; }
+        }
+    }
+
+    function toggleDashMediaFields(type) {
+        const fileLabel = document.getElementById('dash_file_label');
+        const fileInput = document.getElementById('dash_file');
+        const thumbGroup = document.getElementById('dash_thumb_group');
+
+        if (type === 'video') {
+            if (fileLabel) fileLabel.innerHTML = 'Video File <span class="text-danger">*</span>';
+            if (fileInput) fileInput.accept = 'video/*';
+            if (thumbGroup) thumbGroup.style.display = 'block';
+        } else {
+            if (fileLabel) fileLabel.innerHTML = 'Photo / Image File <span class="text-danger">*</span>';
+            if (fileInput) fileInput.accept = 'image/*';
+            if (thumbGroup) thumbGroup.style.display = 'none';
+        }
+    }
+
+    function openUploadModal(type) {
+        const mediaTypeSelect = document.getElementById('dash_media_type');
+        if (mediaTypeSelect) {
+            mediaTypeSelect.value = type;
+            toggleDashMediaFields(type);
+        }
+        if (window.jQuery && $('#uploadMediaModal').length) {
+            $('#uploadMediaModal').modal('show');
+        } else {
+            const modalEl = document.getElementById('uploadMediaModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            } else {
+                window.location.href = "{{ route('admin.resources.create') }}";
+            }
+        }
+    }
     </script>
 </body>
 </html>

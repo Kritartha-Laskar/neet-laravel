@@ -131,6 +131,19 @@
                     </div>
                 </li>
 
+                <li class="nav-item {{ request()->routeIs('admin.chapters.*') ? 'active' : '' }}">
+                    <a class="nav-link" data-toggle="collapse" href="#chapters" data-bs-toggle="collapse" data-bs-target="#chapters" aria-expanded="{{ request()->routeIs('admin.chapters.*') ? 'true' : 'false' }}">
+                        <span class="menu-title">Chapters</span>
+                        <i class="icon-notebook menu-icon"></i>
+                    </a>
+                    <div class="collapse {{ request()->routeIs('admin.chapters.*') ? 'show' : '' }}" id="chapters">
+                        <ul class="nav flex-column sub-menu">
+                            <li class="nav-item"><a class="nav-link" href="{{ route('admin.chapters.index') }}">All Chapters</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{{ route('admin.chapters.create') }}">Add Chapter</a></li>
+                        </ul>
+                    </div>
+                </li>
+
                 <li class="nav-item {{ request()->routeIs('admin.questions.*') ? 'active' : '' }}">
                     <a class="nav-link" data-toggle="collapse" href="#questions" data-bs-toggle="collapse" data-bs-target="#questions" aria-expanded="{{ request()->routeIs('admin.questions.*') ? 'true' : 'false' }}">
                         <span class="menu-title">Questions</span>

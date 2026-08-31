@@ -14,10 +14,18 @@ class ResourceApiController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Resource::active()->latest();
+        $query = Resource::active()->orderBy('sort_order', 'asc')->orderBy('id', 'desc');
 
         if ($request->filled('type') && in_array($request->type, ['video', 'pdf', 'image'])) {
             $query->where('type', $request->type);
+        }
+
+        if ($request->filled('course_id')) {
+            $query->where('course_id', $request->course_id);
+        }
+
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', $request->subject_id);
         }
 
         $resources = $query->paginate(12);
@@ -49,7 +57,8 @@ class ResourceApiController extends Controller
 
         $resources = Resource::active()
             ->where('type', $typeMap[$type])
-            ->latest()
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'desc')
             ->paginate(12);
 
         return response()->json([
@@ -87,7 +96,12 @@ class ResourceApiController extends Controller
         $data = [
             'id'             => $r->id,
             'title'          => $r->title,
+            'description'    => $r->description,
             'type'           => $r->type,
+            'serial_no'      => $r->sort_order ?? $r->id,
+            'sort_order'     => $r->sort_order ?? $r->id,
+            'course_id'      => $r->course_id,
+            'subject_id'     => $r->subject_id,
             'subject'        => $r->subject,
             'file_url'       => $r->file_url,
             'file_name'      => $r->file_name,
@@ -97,10 +111,6 @@ class ResourceApiController extends Controller
             'thumbnail_url'  => $r->thumbnail_url,
             'created_at'     => $r->created_at->toDateString(),
         ];
-
-        if ($detailed) {
-            $data['description'] = $r->description;
-        }
 
         return $data;
     }

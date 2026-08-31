@@ -51,6 +51,21 @@
                         @error('subject_id')<span class="invalid-feedback">{{ $message }}</span>@enderror
                     </div>
 
+                    {{-- Chapter --}}
+                    <div class="form-group mb-3">
+                        <label for="chapter_id" class="fw-semibold">Chapter <small class="text-muted">(Optional)</small></label>
+                        <select name="chapter_id" id="chapter_id" class="form-select form-select-lg @error('chapter_id') is-invalid @enderror">
+                            <option value="">-- Select Chapter --</option>
+                            @foreach($chapters as $ch)
+                                <option value="{{ $ch->id }}" data-subject-id="{{ $ch->subject_id }}"
+                                    {{ old('chapter_id', $question->chapter_id) == $ch->id ? 'selected' : '' }}>
+                                    {{ $ch->full_title }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('chapter_id')<span class="invalid-feedback">{{ $message }}</span>@enderror
+                    </div>
+
                     {{-- Question --}}
                     <div class="form-group">
                         <label for="question">Question <span class="text-danger">*</span></label>
@@ -248,6 +263,9 @@
             });
             
             subjectSelect.value = '';
+            if (chapterSelect) {
+                chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+            }
         });
 
         // Trigger change initially to filter if a course was pre-selected (old values)
@@ -255,6 +273,39 @@
             const tempVal = subjectSelect.value;
             courseSelect.dispatchEvent(new Event('change'));
             subjectSelect.value = tempVal;
+        }
+    }
+
+    // Subject -> Chapter cascading logic
+    const chapterSelect = document.getElementById('chapter_id');
+    if (subjectSelect && chapterSelect) {
+        function loadChaptersForSubject(subId) {
+            if (!subId) {
+                chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+                return;
+            }
+            fetch('{{ url("admin/chapters/by-subject") }}/' + subId)
+                .then(res => res.json())
+                .then(data => {
+                    const selectedChId = '{{ old("chapter_id", $question->chapter_id) }}';
+                    chapterSelect.innerHTML = '<option value="">-- Select Chapter --</option>';
+                    data.forEach(ch => {
+                        const opt = document.createElement('option');
+                        opt.value = ch.id;
+                        opt.textContent = ch.title;
+                        if (ch.id == selectedChId) opt.selected = true;
+                        chapterSelect.appendChild(opt);
+                    });
+                })
+                .catch(err => console.error('Error fetching chapters:', err));
+        }
+
+        subjectSelect.addEventListener('change', function () {
+            loadChaptersForSubject(this.value);
+        });
+
+        if (subjectSelect.value && !chapterSelect.value) {
+            loadChaptersForSubject(subjectSelect.value);
         }
     }
 })();

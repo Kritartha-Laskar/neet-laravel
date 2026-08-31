@@ -39,6 +39,8 @@ Route::middleware(['auth', 'check.role'])->group(function () {
 
         Route::resource('courses',         \App\Http\Controllers\admin\CourseController::class);
         Route::resource('subjects',        \App\Http\Controllers\admin\SubjectController::class);
+        Route::resource('chapters',        \App\Http\Controllers\admin\ChapterController::class);
+        Route::get('chapters/by-subject/{subjectId}', [\App\Http\Controllers\admin\ChapterController::class, 'bySubject'])->name('chapters.by-subject');
         Route::resource('questions',       \App\Http\Controllers\admin\QuestionController::class);
         Route::resource('answers',         \App\Http\Controllers\admin\AnswerController::class);
         Route::resource('question-papers', \App\Http\Controllers\admin\QuestionPaperController::class)

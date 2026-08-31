@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\CourseName;
 use App\Models\Subject;
+use App\Models\Chapter;
 use App\Models\Question;
 use App\Models\Answer;
 use App\Models\QuestionPaper;
@@ -35,7 +36,45 @@ class QuestionPaperSeeder extends Seeder
             $subjectsMap[$name] = $sub;
         }
 
-        // 3. Create Sample Question Pool per Subject
+        // 3. Ensure Chapters exist per Subject
+        $chaptersData = [
+            'Biology' => [
+                ['number' => '1', 'name' => 'The Living World'],
+                ['number' => '2', 'name' => 'Biological Classification'],
+                ['number' => '3', 'name' => 'Plant Kingdom'],
+                ['number' => '4', 'name' => 'Cell: The Unit of Life'],
+            ],
+            'Physics' => [
+                ['number' => '1', 'name' => 'Physical World and Measurement'],
+                ['number' => '2', 'name' => 'Kinematics & Motion'],
+                ['number' => '3', 'name' => 'Laws of Motion'],
+            ],
+            'Chemistry' => [
+                ['number' => '1', 'name' => 'Some Basic Concepts of Chemistry'],
+                ['number' => '2', 'name' => 'Structure of Atom'],
+                ['number' => '3', 'name' => 'Chemical Bonding'],
+            ]
+        ];
+
+        $chaptersMap = [];
+        foreach ($chaptersData as $subName => $cList) {
+            $subObj = $subjectsMap[$subName];
+            $chaptersMap[$subName] = [];
+            foreach ($cList as $idx => $cData) {
+                $ch = Chapter::firstOrCreate(
+                    ['subject_id' => $subObj->id, 'chapter_number' => $cData['number']],
+                    [
+                        'course_id'   => $course->id,
+                        'name'        => $cData['name'],
+                        'sort_order'  => $idx + 1,
+                        'description' => "Official NEET study chapter: {$cData['name']}"
+                    ]
+                );
+                $chaptersMap[$subName][] = $ch;
+            }
+        }
+
+        // 4. Create Sample Question Pool per Subject & distribute across Chapters
         $questionTemplates = [
             'Biology' => [
                 'Which cell organelle is known as the powerhouse of the cell?' => ['Mitochondria', 'Ribosome', 'Golgi apparatus', 'Lysosome'],
@@ -94,8 +133,8 @@ class QuestionPaperSeeder extends Seeder
 
         foreach ($subjectsMap as $subName => $subject) {
             $templates = $questionTemplates[$subName] ?? [];
+            $subChapters = $chaptersMap[$subName] ?? [];
             
-            // Create at least 30 questions per subject by duplicating/variating templates if needed
             for ($k = 1; $k <= 30; $k++) {
                 $keys = array_keys($templates);
                 $questionText = $keys[($k - 1) % count($keys)];
@@ -104,14 +143,15 @@ class QuestionPaperSeeder extends Seeder
                 }
 
                 $options = $templates[$keys[($k - 1) % count($keys)]];
+                $assignedChapter = !empty($subChapters) ? $subChapters[($k - 1) % count($subChapters)] : null;
 
                 $q = Question::create([
                     'subject_id'    => $subject->id,
+                    'chapter_id'    => $assignedChapter?->id,
                     'question'      => $questionText,
                     'question_type' => 'mcq',
                 ]);
 
-                // Create options (First option is correct)
                 foreach ($options as $idx => $optText) {
                     Answer::create([
                         'question_id' => $q->id,
@@ -122,21 +162,78 @@ class QuestionPaperSeeder extends Seeder
             }
         }
 
-        // 4. Create 10 Subject-Wise Mock Test Question Papers FOR EVERY SUBJECT
-        $this->command->info('📚 Creating 10 Subject-Wise Mock Test Question Papers for every subject...');
+        // 5. Create Chapter-Wise & Full Subject Mock Test Question Papers
+        $this->command->info('📚 Creating Chapter-Wise & Subject-Wise Mock Test Papers...');
 
         foreach ($subjectsMap as $subName => $subject) {
-            for ($i = 1; $i <= 10; $i++) {
-                $title = "{$subName} Mock Test Paper {$i}";
+            $subChapters = $chaptersMap[$subName] ?? [];
+
+            // A) Create 2 Chapter-wise papers per chapter
+            foreach ($subChapters as $ch) {
+                for ($p = 1; $p <= 2; $p++) {
+                    $title = "{$subName} {$ch->full_title} Mock Test #{$p}";
+
+                    $paper = QuestionPaper::firstOrCreate(
+                        ['title' => $title],
+                        [
+                            'description'      => "Chapter-wise mock test paper for {$ch->full_title} in {$subName}.",
+                            'exam_name'        => 'NEET Chapter Mock',
+                            'course_id'        => $course->id,
+                            'paper_type'       => 'mocktest',
+                            'subject_id'       => $subject->id,
+                            'chapter_id'       => $ch->id,
+                            'subject_quotas'   => [$subName => 180],
+                            'exam_year'        => 2026,
+                            'duration_minutes' => 180,
+                            'total_marks'      => 720,
+                            'total_questions'  => 0,
+                        ]
+                    );
+
+                    $qIds = Question::where('subject_id', $subject->id)
+                        ->where('chapter_id', $ch->id)
+                        ->whereNull('deleted_at')
+                        ->inRandomOrder()
+                        ->pluck('id');
+
+                    $pivotRows = [];
+                    $order = 1;
+                    foreach ($qIds as $qid) {
+                        $pivotRows[] = [
+                            'question_paper_id' => $paper->id,
+                            'question_id'       => $qid,
+                            'order'             => $order++,
+                            'marks'             => 4,
+                            'created_at'        => now(),
+                            'updated_at'        => now(),
+                        ];
+                    }
+
+                    if (!empty($pivotRows)) {
+                        DB::table('question_paper_question')->where('question_paper_id', $paper->id)->delete();
+                        DB::table('question_paper_question')->insert($pivotRows);
+
+                        $paper->update([
+                            'total_questions' => count($pivotRows),
+                            'total_marks'     => count($pivotRows) * 4,
+                        ]);
+                    }
+                }
+            }
+
+            // B) Create 2 Full Subject Mock Papers
+            for ($i = 1; $i <= 2; $i++) {
+                $title = "{$subName} Full Subject Grand Mock Test #{$i}";
 
                 $paper = QuestionPaper::firstOrCreate(
                     ['title' => $title],
                     [
-                        'description'      => "Official 180-minute subject-wise mock test paper for {$subName} (Set {$i}).",
+                        'description'      => "Official full subject mock test paper for {$subName} (Set {$i}).",
                         'exam_name'        => 'NEET Subject Mock',
                         'course_id'        => $course->id,
                         'paper_type'       => 'mocktest',
                         'subject_id'       => $subject->id,
+                        'chapter_id'       => null,
                         'subject_quotas'   => [$subName => 180],
                         'exam_year'        => 2026,
                         'duration_minutes' => 180,
@@ -145,7 +242,6 @@ class QuestionPaperSeeder extends Seeder
                     ]
                 );
 
-                // Fetch questions for this subject
                 $qIds = Question::where('subject_id', $subject->id)
                     ->whereNull('deleted_at')
                     ->inRandomOrder()
@@ -165,7 +261,6 @@ class QuestionPaperSeeder extends Seeder
                 }
 
                 if (!empty($pivotRows)) {
-                    // Refresh pivot
                     DB::table('question_paper_question')->where('question_paper_id', $paper->id)->delete();
                     DB::table('question_paper_question')->insert($pivotRows);
 
@@ -177,10 +272,10 @@ class QuestionPaperSeeder extends Seeder
             }
         }
 
-        // 5. Create 5 Combined Question Papers
-        $this->command->info('🌐 Creating 5 Combined Multi-Subject Question Papers...');
+        // 6. Create 3 Combined Question Papers
+        $this->command->info('🌐 Creating 3 Combined Multi-Subject Question Papers...');
 
-        for ($j = 1; $j <= 5; $j++) {
+        for ($j = 1; $j <= 3; $j++) {
             $title = "NEET Combined Grand Mock Paper {$j}";
 
             $quotasMap = [
@@ -197,6 +292,7 @@ class QuestionPaperSeeder extends Seeder
                     'course_id'        => $course->id,
                     'paper_type'       => 'combined',
                     'subject_id'       => null,
+                    'chapter_id'       => null,
                     'subject_quotas'   => $quotasMap,
                     'exam_year'        => 2026,
                     'duration_minutes' => 180,

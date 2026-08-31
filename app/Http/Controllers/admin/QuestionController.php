@@ -15,29 +15,51 @@ use Illuminate\Support\Str;
 
 class QuestionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $questions = Question::with('subject')->latest()->paginate(15);
-        return view('corse.question.index', compact('questions'));
+        $query = Question::with(['subject.course', 'chapter', 'answers'])->latest();
+
+        if ($request->filled('course_id')) {
+            $query->whereHas('subject', fn($q) => $q->where('course_id', $request->query('course_id')));
+        }
+
+        if ($request->filled('subject_id')) {
+            $query->where('subject_id', $request->query('subject_id'));
+        }
+
+        if ($request->filled('chapter_id')) {
+            $query->where('chapter_id', $request->query('chapter_id'));
+        }
+
+        $questions = $query->paginate(15);
+        $courses   = CourseName::orderBy('name')->get();
+        $subjects  = Subject::orderBy('name')->get();
+
+        return view('corse.question.index', compact('questions', 'courses', 'subjects'));
     }
 
     public function create(Request $request)
     {
         $courses  = CourseName::orderBy('name')->get();
         $subjects = Subject::with('course')->orderBy('name')->get();
+        $chapters = \App\Models\Chapter::orderBy('sort_order')->orderBy('id')->get();
 
         $selectedCourse  = null;
         $selectedSubject = null;
+        $selectedChapter = null;
         $paper           = null;
 
         if ($request->filled('question_paper_id')) {
-            $paper = QuestionPaper::with(['course', 'subject.course'])->find($request->question_paper_id);
+            $paper = QuestionPaper::with(['course', 'subject.course', 'chapter'])->find($request->question_paper_id);
             if ($paper) {
                 if ($paper->subject) {
                     $selectedSubject = $paper->subject;
                     if ($paper->subject->course) {
                         $selectedCourse = $paper->subject->course;
                     }
+                }
+                if ($paper->chapter) {
+                    $selectedChapter = $paper->chapter;
                 }
                 if (!$selectedCourse && $paper->course) {
                     $selectedCourse = $paper->course;
@@ -53,17 +75,22 @@ class QuestionController extends Controller
             $selectedSubject = Subject::with('course')->find($request->subject_id);
         }
 
+        if (!$selectedChapter && $request->filled('chapter_id')) {
+            $selectedChapter = \App\Models\Chapter::find($request->chapter_id);
+        }
+
         if ($selectedSubject && !$selectedCourse && $selectedSubject->course) {
             $selectedCourse = $selectedSubject->course;
         }
 
-        return view('corse.question.create', compact('subjects', 'courses', 'selectedCourse', 'selectedSubject', 'paper'));
+        return view('corse.question.create', compact('subjects', 'courses', 'chapters', 'selectedCourse', 'selectedSubject', 'selectedChapter', 'paper'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'subject_id'    => 'required|exists:subjects,id',
+            'chapter_id'    => 'nullable|exists:chapters,id',
             'question'      => 'required|string',
             'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'question_type' => 'required|in:mcq,msq,descripted',
@@ -73,7 +100,7 @@ class QuestionController extends Controller
             'is_correct.*'  => 'in:0,1',
         ]);
 
-        $data = $request->only('subject_id', 'question', 'question_type');
+        $data = $request->only('subject_id', 'chapter_id', 'question', 'question_type');
 
         if ($request->hasFile('image')) {
             $imageFile = $request->file('image');
@@ -134,14 +161,17 @@ class QuestionController extends Controller
     {
         $courses  = CourseName::orderBy('name')->get();
         $subjects = Subject::orderBy('name')->get();
-        $question->load('answers');
-        return view('corse.question.edit', compact('question', 'subjects', 'courses'));
+        $chapters = \App\Models\Chapter::orderBy('sort_order')->orderBy('id')->get();
+        $question->load(['answers', 'subject.course', 'chapter']);
+
+        return view('corse.question.edit', compact('question', 'subjects', 'courses', 'chapters'));
     }
 
     public function update(Request $request, Question $question)
     {
         $request->validate([
             'subject_id'    => 'required|exists:subjects,id',
+            'chapter_id'    => 'nullable|exists:chapters,id',
             'question'      => 'required|string',
             'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'question_type' => 'required|in:mcq,msq,descripted',
@@ -151,7 +181,7 @@ class QuestionController extends Controller
             'is_correct.*'  => 'in:0,1',
         ]);
 
-        $data = $request->only('subject_id', 'question', 'question_type');
+        $data = $request->only('subject_id', 'chapter_id', 'question', 'question_type');
 
         if ($request->hasFile('image')) {
             if ($question->image) {

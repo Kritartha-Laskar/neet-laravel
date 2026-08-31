@@ -15,6 +15,7 @@ class QuestionPaper extends Model
         'course_id',
         'paper_type',
         'subject_id',
+        'chapter_id',
         'subject_quotas',
         'total_questions',
         'duration_minutes',
@@ -40,6 +41,14 @@ class QuestionPaper extends Model
     public function subject()
     {
         return $this->belongsTo(Subject::class, 'subject_id');
+    }
+
+    /**
+     * Chapter relationship for Chapter-Wise Mock Test Papers.
+     */
+    public function chapter()
+    {
+        return $this->belongsTo(Chapter::class, 'chapter_id');
     }
 
     /**

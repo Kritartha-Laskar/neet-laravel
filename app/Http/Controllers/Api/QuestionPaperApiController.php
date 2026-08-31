@@ -7,15 +7,35 @@ use App\Models\QuestionPaper;
 
 class QuestionPaperApiController extends Controller
 {
-    // ──────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/question-papers
-    // Returns all papers (paginated, 10 per page) with question count
-    // ──────────────────────────────────────────────────────────────
-    public function index()
+    // Returns papers (paginated) filtered by paper_type ('mocktest' vs 'combined')
+    // ─────────────────────────────────────────────────────────────────────────
+    public function index(\Illuminate\Http\Request $request)
     {
-        $papers = QuestionPaper::with(['subject'])->withCount('questions')
-            ->latest()
-            ->paginate(10);
+        $query = QuestionPaper::with(['subject'])->withCount('questions')->latest();
+
+        if ($request->filled('paper_type')) {
+            $type = $request->query('paper_type');
+            if ($type === 'mocktest') {
+                // Mock test papers: paper_type == 'mocktest' OR subject_id is NOT null
+                $query->where(function ($q) {
+                    $q->where('paper_type', 'mocktest')
+                      ->orWhereNotNull('subject_id');
+                });
+            } elseif ($type === 'combined') {
+                // Combined test papers: paper_type == 'combined' AND subject_id is null
+                $query->where(function ($q) {
+                    $q->where('paper_type', 'combined')
+                      ->whereNull('subject_id');
+                });
+            } else {
+                $query->where('paper_type', $type);
+            }
+        }
+
+        $perPage = min($request->query('per_page', 50), 100);
+        $papers  = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
@@ -24,7 +44,7 @@ class QuestionPaperApiController extends Controller
                 'title'            => $p->title,
                 'description'      => $p->description,
                 'exam_name'        => $p->exam_name,
-                'paper_type'       => $p->paper_type ?? 'combined',
+                'paper_type'       => $p->subject_id !== null ? 'mocktest' : ($p->paper_type ?? 'combined'),
                 'subject_id'       => $p->subject_id,
                 'subject_name'     => optional($p->subject)->name,
                 'subject_quotas'   => $p->subject_quotas,
@@ -44,11 +64,10 @@ class QuestionPaperApiController extends Controller
         ]);
     }
 
-    // ──────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
     // GET /api/question-papers/{id}
     // Returns a single paper with all questions grouped by subject
-    // Each question includes its answer options
-    // ──────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
     public function show(QuestionPaper $questionPaper)
     {
         $questionPaper->load([
@@ -85,6 +104,7 @@ class QuestionPaperApiController extends Controller
                 'title'            => $questionPaper->title,
                 'description'      => $questionPaper->description,
                 'exam_name'        => $questionPaper->exam_name,
+                'paper_type'       => $questionPaper->subject_id !== null ? 'mocktest' : ($questionPaper->paper_type ?? 'combined'),
                 'exam_year'        => $questionPaper->exam_year,
                 'total_questions'  => $questionPaper->total_questions,
                 'total_marks'      => $questionPaper->total_marks,

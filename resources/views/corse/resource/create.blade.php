@@ -53,34 +53,16 @@
                         @error('title')<span class="invalid-feedback">{{ $message }}</span>@enderror
                     </div>
 
-                    {{-- Description --}}
+                    {{-- Serial Number / Order --}}
                     <div class="form-group">
-                        <label for="description">Description</label>
-                        <textarea name="description" id="description" rows="3"
-                                  class="form-control" placeholder="Optional description">{{ old('description') }}</textarea>
+                        <label for="sort_order" class="fw-semibold">Serial Number / Order <small class="text-muted">(Optional — e.g. 1, 2, 3)</small></label>
+                        <input type="number" name="sort_order" id="sort_order" min="1"
+                               class="form-control @error('sort_order') is-invalid @enderror"
+                               value="{{ old('sort_order') }}" placeholder="Enter serial number (e.g. 1)">
+                        @error('sort_order')<span class="invalid-feedback">{{ $message }}</span>@enderror
                     </div>
 
-                    {{-- Course selector --}}
-                    <div class="form-group">
-                        <label for="course_id">Course <small class="text-muted">(optional)</small></label>
-                        <select name="course_id" id="course_id" class="form-select form-control">
-                            <option value="">-- Choose Course --</option>
-                            @foreach($courses as $course)
-                                <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>{{ $course->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
 
-                    {{-- Subject selector --}}
-                    <div class="form-group">
-                        <label for="subject_id">Subject <small class="text-muted">(optional)</small></label>
-                        <select name="subject_id" id="subject_id" class="form-select form-control">
-                            <option value="">-- Choose Subject --</option>
-                            @foreach($subjects as $subj)
-                                <option value="{{ $subj->id }}" data-course-id="{{ $subj->course_id }}" {{ old('subject_id') == $subj->id ? 'selected' : '' }}>{{ $subj->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
 
                     {{-- File upload — shown based on type --}}
                     <div class="form-group" id="file-upload-section" style="display:none;">

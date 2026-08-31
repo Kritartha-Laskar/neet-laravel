@@ -13,11 +13,11 @@ use Illuminate\Support\Facades\DB;
 class QuestionPaperController extends Controller
 {
     /**
-     * List all question papers with filters, course, and subject options.
+     * List all question papers with filters, course, subject, and chapter options.
      */
     public function index(Request $request)
     {
-        $query = QuestionPaper::with(['course', 'subject'])->withCount('questions')->latest();
+        $query = QuestionPaper::with(['course', 'subject', 'chapter'])->withCount('questions')->latest();
 
         if ($request->filled('paper_type')) {
             $query->where('paper_type', $request->query('paper_type'));
@@ -27,13 +27,26 @@ class QuestionPaperController extends Controller
             $query->where('subject_id', $request->query('subject_id'));
         }
 
+        if ($request->filled('chapter_id')) {
+            $query->where('chapter_id', $request->query('chapter_id'));
+        }
+
         if ($request->filled('course_id')) {
             $query->where('course_id', $request->query('course_id'));
         }
 
-        $papers   = $query->paginate(15);
+        $papers   = $query->paginate(30);
         $courses  = CourseName::orderBy('name')->get();
-        $subjects = Subject::withCount('questions')->orderBy('name')->get();
+        $subjects = Subject::withCount([
+            'questions',
+            'questionPapers' => function($q) {
+                $q->where('paper_type', 'mocktest');
+            }
+        ])->with(['chapters' => function($q) {
+            $q->withCount(['questionPapers' => function($qp) {
+                $qp->where('paper_type', 'mocktest');
+            }]);
+        }])->orderBy('name')->get();
 
         return view('corse.question_paper.index', compact('papers', 'courses', 'subjects'));
     }
@@ -43,7 +56,7 @@ class QuestionPaperController extends Controller
      */
     public function show(QuestionPaper $questionPaper)
     {
-        $questionPaper->load(['course', 'subject', 'questions.subject', 'questions.answers']);
+        $questionPaper->load(['course', 'subject', 'chapter', 'questions.subject', 'questions.answers']);
 
         $attachedIds = $questionPaper->questions->pluck('id');
 
@@ -82,6 +95,7 @@ class QuestionPaperController extends Controller
             'total_marks'       => 'nullable|integer|min:1|max:2000',
             'description'       => 'nullable|string|max:500',
             'subject_id'        => 'required_if:paper_type,mocktest|nullable|exists:subjects,id',
+            'chapter_id'        => 'nullable|exists:chapters,id',
             'limit'             => 'nullable|integer|min:1|max:180',
             'quotas'            => 'nullable|array',
             'quotas.*'          => 'nullable|integer|min:0|max:180',
@@ -94,12 +108,13 @@ class QuestionPaperController extends Controller
 
         $paperType = $validated['paper_type'];
         $courseId  = $validated['course_id'] ?? null;
+        $chapterId = $validated['chapter_id'] ?? null;
         $pivotRows = [];
         $order     = 1;
         $quotasMap = [];
 
         if ($paperType === 'mocktest') {
-            // Subject-wise Mock Test
+            // Subject-wise / Chapter-wise Mock Test
             $subjectId = $validated['subject_id'];
             $subject   = Subject::findOrFail($subjectId);
             $limit     = min($validated['limit'] ?? 180, 180);
@@ -109,11 +124,23 @@ class QuestionPaperController extends Controller
                 $courseId = $subject->course_id;
             }
 
-            $questionIds = Question::where('subject_id', $subjectId)
-                ->whereNull('deleted_at')
-                ->inRandomOrder()
-                ->limit($limit)
-                ->pluck('id');
+            $questionQuery = Question::where('subject_id', $subjectId)->whereNull('deleted_at');
+            if ($chapterId) {
+                $questionQuery->where('chapter_id', $chapterId);
+            }
+
+            $questionIds = $questionQuery->inRandomOrder()->limit($limit)->pluck('id');
+
+            // Fallback: If requested chapter doesn't have enough questions, grab additional from subject
+            if ($chapterId && count($questionIds) < $limit) {
+                $extraIds = Question::where('subject_id', $subjectId)
+                    ->whereNotIn('id', $questionIds)
+                    ->whereNull('deleted_at')
+                    ->inRandomOrder()
+                    ->limit($limit - count($questionIds))
+                    ->pluck('id');
+                $questionIds = $questionIds->merge($extraIds);
+            }
 
             foreach ($questionIds as $qid) {
                 $pivotRows[] = [
@@ -135,6 +162,7 @@ class QuestionPaperController extends Controller
                 'course_id'        => $courseId,
                 'paper_type'       => 'mocktest',
                 'subject_id'       => $subjectId,
+                'chapter_id'       => $chapterId,
                 'subject_quotas'   => $quotasMap,
                 'exam_year'        => $validated['exam_year'] ?? date('Y'),
                 'duration_minutes' => $validated['duration_minutes'] ?? 180,

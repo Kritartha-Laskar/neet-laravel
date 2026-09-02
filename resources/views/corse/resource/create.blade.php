@@ -208,40 +208,104 @@
         }
     });
 
-    // ── File size validation and progress bar on submit ─────────────
-    document.getElementById('upload-form').addEventListener('submit', function (e) {
-        const file = fileInput.files[0];
-        const selectedTypeInput = document.querySelector('input[name="type"]:checked');
-        const selectedType = selectedTypeInput ? selectedTypeInput.value : null;
+    // ── Chunked Video Upload Handler for Full Upload Form ─────────────
+    const fullForm = document.getElementById('upload-form');
+    if (fullForm) {
+        fullForm.addEventListener('submit', async function (e) {
+            const file = fileInput.files[0];
+            const selectedTypeInput = document.querySelector('input[name="type"]:checked');
+            const selectedType = selectedTypeInput ? selectedTypeInput.value : null;
 
-        if (file && selectedType) {
-            let maxSize = 512 * 1024 * 1024; // Default 512 MB for video
-            let typeLabel = 'Video';
-
-            if (selectedType === 'pdf') {
-                maxSize = 50 * 1024 * 1024; // 50 MB
-                typeLabel = 'PDF';
-            } else if (selectedType === 'image') {
-                maxSize = 10 * 1024 * 1024; // 10 MB
-                typeLabel = 'Image';
-            }
-
-            if (file.size > maxSize) {
+            if (file && (selectedType === 'video' || file.size > 2 * 1024 * 1024)) {
                 e.preventDefault();
-                alert(`Selected ${typeLabel} file (${humanSize(file.size)}) exceeds the server limit of ${humanSize(maxSize)}. Please select a smaller file or chunk the upload.`);
-                return false;
-            }
-        }
 
-        document.getElementById('progress-section').style.display = '';
-        let w = 0;
-        const bar = document.getElementById('progress-bar');
-        const iv = setInterval(function () {
-            w = Math.min(w + Math.random() * 12, 90);
-            bar.style.width = w + '%';
-            if (w >= 90) clearInterval(iv);
-        }, 400);
-    });
+                const progressSection = document.getElementById('progress-section');
+                const progressBar = document.getElementById('progress-bar');
+                const submitBtn = document.getElementById('submit-btn');
+
+                if (progressSection) progressSection.style.display = 'block';
+                if (submitBtn) submitBtn.disabled = true;
+
+                const chunkSize = 2 * 1024 * 1024; // 2MB chunk size
+                const totalChunks = Math.ceil(file.size / chunkSize);
+                const uuid = 'vid_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+                const csrfToken = document.querySelector('input[name="_token"]').value;
+
+                let tempFilePath = null;
+                let tempFileName = null;
+
+                try {
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * chunkSize;
+                        const end = Math.min(file.size, start + chunkSize);
+                        const chunk = file.slice(start, end);
+
+                        const formData = new FormData();
+                        formData.append('_token', csrfToken);
+                        formData.append('file_uuid', uuid);
+                        formData.append('chunk_index', i);
+                        formData.append('total_chunks', totalChunks);
+                        formData.append('file_name', file.name);
+                        formData.append('file_chunk', chunk, file.name);
+
+                        const response = await fetch('{{ route("dashboard.resources.upload_chunk") }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Server returned HTTP ' + response.status);
+                        }
+
+                        const resData = await response.json();
+                        if (!resData.success) {
+                            throw new Error(resData.message || 'Chunk upload failed');
+                        }
+
+                        const pct = Math.round(((i + 1) / totalChunks) * 100);
+                        if (progressBar) progressBar.style.width = pct + '%';
+
+                        if (resData.temp_file_path) {
+                            tempFilePath = resData.temp_file_path;
+                            tempFileName = resData.original_name;
+                        }
+                    }
+
+                    // Append temp file info to form
+                    let tempPathInput = fullForm.querySelector('input[name="temp_file_path"]');
+                    if (!tempPathInput) {
+                        tempPathInput = document.createElement('input');
+                        tempPathInput.type = 'hidden';
+                        tempPathInput.name = 'temp_file_path';
+                        fullForm.appendChild(tempPathInput);
+                    }
+                    tempPathInput.value = tempFilePath;
+
+                    let tempNameInput = fullForm.querySelector('input[name="temp_file_name"]');
+                    if (!tempNameInput) {
+                        tempNameInput = document.createElement('input');
+                        tempNameInput.type = 'hidden';
+                        tempNameInput.name = 'temp_file_name';
+                        fullForm.appendChild(tempNameInput);
+                    }
+                    tempNameInput.value = tempFileName;
+
+                    fileInput.removeAttribute('required');
+                    fileInput.removeAttribute('name');
+
+                    fullForm.submit();
+
+                } catch (err) {
+                    alert('Upload error: ' + err.message + '. Please try again or check server upload settings.');
+                    if (progressSection) progressSection.style.display = 'none';
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            }
+        });
+    }
 
     // Course -> Subject filtering logic
     const courseIdSelect = document.getElementById('course_id');

@@ -38,6 +38,7 @@ class ResourceController extends Controller
     public function store(Request $request)
     {
         $type = $request->input('type');
+        $tempFilePath = $request->input('temp_file_path');
 
         // Dynamic validation based on type
         $rules = [
@@ -49,23 +50,47 @@ class ResourceController extends Controller
             'subject_id'  => 'nullable|exists:subjects,id',
         ];
 
-        if ($type === 'video') {
-            $rules['file'] = 'required|file|mimetypes:video/mp4,video/avi,video/quicktime,video/webm|max:512000'; // 500 MB
-            $rules['thumbnail'] = 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048';
-        } elseif ($type === 'pdf') {
-            $rules['file'] = 'required|file|mimes:pdf|max:51200'; // 50 MB
-        } elseif ($type === 'image') {
-            $rules['file'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:10240'; // 10 MB
+        if ($tempFilePath) {
+            $rules['temp_file_path'] = 'required|string';
+            if ($type === 'video') {
+                $rules['thumbnail'] = 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048';
+            }
+        } else {
+            if ($type === 'video') {
+                $rules['file'] = 'required|file|mimetypes:video/mp4,video/avi,video/quicktime,video/webm|max:512000'; // 500 MB
+                $rules['thumbnail'] = 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048';
+            } elseif ($type === 'pdf') {
+                $rules['file'] = 'required|file|mimes:pdf|max:51200'; // 50 MB
+            } elseif ($type === 'image') {
+                $rules['file'] = 'required|image|mimes:jpeg,png,jpg,gif,webp|max:10240'; // 10 MB
+            }
         }
 
         $request->validate($rules);
 
-        $uploadedFile = $request->file('file');
-        $folder       = "resources/{$type}s"; // e.g. resources/videos
-        $fileName     = time() . '_' . Str::slug(pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME))
-                        . '.' . $uploadedFile->getClientOriginalExtension();
+        $tempFileFullPath = storage_path("app/chunks/{$tempFilePath}");
 
-        $filePath = $uploadedFile->storeAs($folder, $fileName, 'public');
+        if ($tempFilePath && file_exists($tempFileFullPath)) {
+            $originalName = $request->input('temp_file_name', 'uploaded_file');
+            $extension    = pathinfo($originalName, PATHINFO_EXTENSION);
+            $mimeType     = mime_content_type($tempFileFullPath) ?: 'video/mp4';
+            $fileSize     = filesize($tempFileFullPath);
+            $folder       = "resources/{$type}s";
+            $fileName     = time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension;
+
+            $filePath = Storage::disk('public')->putFileAs($folder, new \Illuminate\Http\File($tempFileFullPath), $fileName);
+            @unlink($tempFileFullPath);
+        } else {
+            $uploadedFile = $request->file('file');
+            $folder       = "resources/{$type}s"; // e.g. resources/videos
+            $fileName     = time() . '_' . Str::slug(pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME))
+                            . '.' . $uploadedFile->getClientOriginalExtension();
+
+            $filePath     = $uploadedFile->storeAs($folder, $fileName, 'public');
+            $originalName = $uploadedFile->getClientOriginalName();
+            $mimeType     = $uploadedFile->getMimeType();
+            $fileSize     = $uploadedFile->getSize();
+        }
 
         // Handle video thumbnail
         $thumbnailPath = null;
@@ -92,9 +117,9 @@ class ResourceController extends Controller
             'description'    => $request->description,
             'type'           => $type,
             'file_path'      => $filePath,
-            'file_name'      => $uploadedFile->getClientOriginalName(),
-            'mime_type'      => $uploadedFile->getMimeType(),
-            'file_size'      => $uploadedFile->getSize(),
+            'file_name'      => $originalName,
+            'mime_type'      => $mimeType,
+            'file_size'      => $fileSize,
             'thumbnail_path' => $thumbnailPath,
             'course_id'      => $request->course_id,
             'subject_id'     => $request->subject_id,

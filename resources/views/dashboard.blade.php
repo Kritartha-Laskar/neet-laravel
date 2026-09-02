@@ -1574,7 +1574,7 @@
     <div class="modal fade" id="uploadMediaModal" tabindex="-1" role="dialog" aria-labelledby="uploadMediaModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
-                <form method="POST" action="{{ route('admin.resources.store') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route('admin.resources.store') }}" enctype="multipart/form-data" id="dash_upload_form">
                     @csrf
                     <div class="modal-header">
                         <h5 class="modal-title fw-bold" id="uploadMediaModalLabel"><i class="icon-cloud-upload me-2 text-primary"></i>Upload Video / Photo for App</h5>
@@ -1610,10 +1610,21 @@
                             <label for="dash_thumbnail" class="fw-semibold">Video Thumbnail Image <small class="text-muted">(Optional)</small></label>
                             <input type="file" name="thumbnail" id="dash_thumbnail" class="form-control" accept="image/*">
                         </div>
+
+                        {{-- Progress bar --}}
+                        <div id="dash_progress_section" class="mt-3" style="display:none;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="small fw-semibold text-primary" id="dash_progress_status">Uploading in chunks...</span>
+                                <span class="small fw-bold text-primary" id="dash_progress_percent">0%</span>
+                            </div>
+                            <div class="progress" style="height:10px;">
+                                <div id="dash_progress_bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width:0%"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary"><i class="icon-cloud-upload me-1"></i> Upload Now</button>
+                        <button type="submit" class="btn btn-primary" id="dash_submit_btn"><i class="icon-cloud-upload me-1"></i> Upload Now</button>
                     </div>
                 </form>
             </div>
@@ -1673,6 +1684,114 @@
                 window.location.href = "{{ route('admin.resources.create') }}";
             }
         }
+    }
+
+    // ── Chunked Video Upload Handler for Quick Upload Modal ─────────────
+    const dashForm = document.getElementById('dash_upload_form');
+    if (dashForm) {
+        dashForm.addEventListener('submit', async function (e) {
+            const fileInput = document.getElementById('dash_file');
+            const mediaType = document.getElementById('dash_media_type').value;
+            const file = fileInput ? fileInput.files[0] : null;
+
+            // If a video or file larger than 2MB is selected, upload in 2MB chunks to prevent ERR_CONNECTION_RESET
+            if (file && (mediaType === 'video' || file.size > 2 * 1024 * 1024)) {
+                e.preventDefault();
+
+                const progressSection = document.getElementById('dash_progress_section');
+                const progressBar = document.getElementById('dash_progress_bar');
+                const progressStatus = document.getElementById('dash_progress_status');
+                const progressPercent = document.getElementById('dash_progress_percent');
+                const submitBtn = document.getElementById('dash_submit_btn');
+
+                if (progressSection) progressSection.style.display = 'block';
+                if (submitBtn) submitBtn.disabled = true;
+
+                const chunkSize = 2 * 1024 * 1024; // 2MB chunk size
+                const totalChunks = Math.ceil(file.size / chunkSize);
+                const uuid = 'vid_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+                const csrfToken = document.querySelector('input[name="_token"]').value;
+
+                let tempFilePath = null;
+                let tempFileName = null;
+
+                try {
+                    for (let i = 0; i < totalChunks; i++) {
+                        const start = i * chunkSize;
+                        const end = Math.min(file.size, start + chunkSize);
+                        const chunk = file.slice(start, end);
+
+                        const formData = new FormData();
+                        formData.append('_token', csrfToken);
+                        formData.append('file_uuid', uuid);
+                        formData.append('chunk_index', i);
+                        formData.append('total_chunks', totalChunks);
+                        formData.append('file_name', file.name);
+                        formData.append('file_chunk', chunk, file.name);
+
+                        const response = await fetch('{{ route("dashboard.resources.upload_chunk") }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Server returned HTTP ' + response.status);
+                        }
+
+                        const resData = await response.json();
+                        if (!resData.success) {
+                            throw new Error(resData.message || 'Chunk upload failed');
+                        }
+
+                        const pct = Math.round(((i + 1) / totalChunks) * 100);
+                        if (progressBar) progressBar.style.width = pct + '%';
+                        if (progressPercent) progressPercent.textContent = pct + '%';
+                        if (progressStatus) progressStatus.textContent = `Uploading chunk ${i + 1} of ${totalChunks}...`;
+
+                        if (resData.temp_file_path) {
+                            tempFilePath = resData.temp_file_path;
+                            tempFileName = resData.original_name;
+                        }
+                    }
+
+                    if (progressStatus) progressStatus.textContent = 'Finalizing upload...';
+
+                    // Append temp file info to form
+                    let tempPathInput = dashForm.querySelector('input[name="temp_file_path"]');
+                    if (!tempPathInput) {
+                        tempPathInput = document.createElement('input');
+                        tempPathInput.type = 'hidden';
+                        tempPathInput.name = 'temp_file_path';
+                        dashForm.appendChild(tempPathInput);
+                    }
+                    tempPathInput.value = tempFilePath;
+
+                    let tempNameInput = dashForm.querySelector('input[name="temp_file_name"]');
+                    if (!tempNameInput) {
+                        tempNameInput = document.createElement('input');
+                        tempNameInput.type = 'hidden';
+                        tempNameInput.name = 'temp_file_name';
+                        dashForm.appendChild(tempNameInput);
+                    }
+                    tempNameInput.value = tempFileName;
+
+                    // Remove file input requirement and name so raw file isn't uploaded again
+                    fileInput.removeAttribute('required');
+                    fileInput.removeAttribute('name');
+
+                    // Submit form
+                    dashForm.submit();
+
+                } catch (err) {
+                    alert('Upload error: ' + err.message + '. Please try again or check server upload settings.');
+                    if (progressSection) progressSection.style.display = 'none';
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            }
+        });
     }
     </script>
 </body>

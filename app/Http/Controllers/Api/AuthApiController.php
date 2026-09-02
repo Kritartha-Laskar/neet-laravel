@@ -26,15 +26,16 @@ class AuthApiController extends Controller
         $token = Str::random(60);
 
         $user = User::create([
-            'name'      => $validated['name'],
-            'user_name' => $validated['user_name'],
-            'gmail'     => $validated['gmail'],
-            'phone_no'  => $validated['phone_no'] ?? null,
-            'password'  => Hash::make($validated['password']),
-            'user_type' => 'user',
-            'status'    => 'active',
-            'role'      => 3,
-            'api_token' => $token,
+            'name'           => $validated['name'],
+            'user_name'      => $validated['user_name'],
+            'gmail'          => $validated['gmail'],
+            'phone_no'       => $validated['phone_no'] ?? null,
+            'password'       => Hash::make($validated['password']),
+            'user_type'      => 'user',
+            'status'         => 'active',
+            'payment_status' => 0,
+            'role'           => 3,
+            'api_token'      => $token,
         ]);
 
         return response()->json([
@@ -42,12 +43,13 @@ class AuthApiController extends Controller
             'message' => 'Registration successful.',
             'data'    => [
                 'user'  => [
-                    'id'        => $user->id,
-                    'name'      => $user->name,
-                    'user_name' => $user->user_name,
-                    'gmail'     => $user->gmail,
-                    'phone_no'  => $user->phone_no,
-                    'user_type' => $user->user_type,
+                    'id'             => $user->id,
+                    'name'           => $user->name,
+                    'user_name'      => $user->user_name,
+                    'gmail'          => $user->gmail,
+                    'phone_no'       => $user->phone_no,
+                    'user_type'      => $user->user_type,
+                    'payment_status' => $user->payment_status,
                 ],
                 'token' => $token,
                 'token_type' => 'Bearer',
@@ -100,12 +102,13 @@ class AuthApiController extends Controller
             'message' => 'Login successful.',
             'data'    => [
                 'user'  => [
-                    'id'        => $user->id,
-                    'name'      => $user->name,
-                    'user_name' => $user->user_name,
-                    'gmail'     => $user->gmail,
-                    'phone_no'  => $user->phone_no,
-                    'user_type' => $user->user_type,
+                    'id'             => $user->id,
+                    'name'           => $user->name,
+                    'user_name'      => $user->user_name,
+                    'gmail'          => $user->gmail,
+                    'phone_no'       => $user->phone_no,
+                    'user_type'      => $user->user_type,
+                    'payment_status' => (int) $user->payment_status,
                 ],
                 'token'      => $token,
                 'token_type' => 'Bearer',

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'user_name',
         'user_type',
         'status',
+        'payment_status',
         'role',
         'password',
         'api_token',
@@ -41,7 +42,8 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'password' => 'hashed',
+            'password'       => 'hashed',
+            'payment_status' => 'integer',
         ];
     }
 }

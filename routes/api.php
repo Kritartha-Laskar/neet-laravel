@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\QuestionPaperApiController;
 use App\Http\Controllers\Api\ResourceApiController;
 use App\Http\Controllers\Api\ClassApiController;
 
+use App\Http\Controllers\Api\ExamApiController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes  —  prefix: /api
@@ -32,6 +34,13 @@ Route::middleware('auth.api')->group(function () {
     // Question Papers
     Route::get('question-papers',      [QuestionPaperApiController::class, 'index']);  // GET  /api/question-papers
     Route::get('question-papers/{questionPaper}', [QuestionPaperApiController::class, 'show']);   // GET  /api/question-papers/{id}
+
+    // Exam Attempt & Real-Time Answer Storage
+    Route::post('exam/start',            [ExamApiController::class, 'startExam']);               // POST /api/exam/start
+    Route::post('exam/save-answer',      [ExamApiController::class, 'saveAnswer']);              // POST /api/exam/save-answer
+    Route::post('exam/submit',           [ExamApiController::class, 'submitExam']);              // POST /api/exam/submit
+    Route::get('exam/analytics',         [ExamApiController::class, 'getPerformanceAnalytics']); // GET  /api/exam/analytics
+    Route::get('exam/attempt/{attempt}', [ExamApiController::class, 'getAttemptDetail']);        // GET  /api/exam/attempt/{id}
 
     // Media & Document Resources (Videos, PDFs, Images)
     Route::get('resources',             [ResourceApiController::class, 'index']);      // GET  /api/resources?type=video|pdf|image

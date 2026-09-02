@@ -208,8 +208,31 @@
         }
     });
 
-    // ── Simulated upload progress on submit ───────────────────────
-    document.getElementById('upload-form').addEventListener('submit', function () {
+    // ── File size validation and progress bar on submit ─────────────
+    document.getElementById('upload-form').addEventListener('submit', function (e) {
+        const file = fileInput.files[0];
+        const selectedTypeInput = document.querySelector('input[name="type"]:checked');
+        const selectedType = selectedTypeInput ? selectedTypeInput.value : null;
+
+        if (file && selectedType) {
+            let maxSize = 512 * 1024 * 1024; // Default 512 MB for video
+            let typeLabel = 'Video';
+
+            if (selectedType === 'pdf') {
+                maxSize = 50 * 1024 * 1024; // 50 MB
+                typeLabel = 'PDF';
+            } else if (selectedType === 'image') {
+                maxSize = 10 * 1024 * 1024; // 10 MB
+                typeLabel = 'Image';
+            }
+
+            if (file.size > maxSize) {
+                e.preventDefault();
+                alert(`Selected ${typeLabel} file (${humanSize(file.size)}) exceeds the server limit of ${humanSize(maxSize)}. Please select a smaller file or chunk the upload.`);
+                return false;
+            }
+        }
+
         document.getElementById('progress-section').style.display = '';
         let w = 0;
         const bar = document.getElementById('progress-bar');

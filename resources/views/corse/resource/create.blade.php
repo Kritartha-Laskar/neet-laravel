@@ -226,7 +226,7 @@
                 if (progressSection) progressSection.style.display = 'block';
                 if (submitBtn) submitBtn.disabled = true;
 
-                const chunkSize = 2 * 1024 * 1024; // 2MB chunk size
+                const chunkSize = 512 * 1024; // 512KB chunk size (fits under default Nginx 1MB client_max_body_size)
                 const totalChunks = Math.ceil(file.size / chunkSize);
                 const uuid = 'vid_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
                 const csrfToken = document.querySelector('input[name="_token"]').value;

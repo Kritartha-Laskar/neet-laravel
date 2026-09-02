@@ -1379,8 +1379,8 @@
                 if (progressStatus) progressStatus.textContent = 'Preparing upload...';
                 if (progressStats) progressStats.textContent = '';
 
-                // Chunk parameters: 900KB per chunk (to stay safely under server's 1MB/2MB default limits)
-                const chunkSize = 900 * 1024;
+                // Chunk parameters: 512KB per chunk (to stay safely under server's 1MB default limits)
+                const chunkSize = 512 * 1024;
                 const totalChunks = Math.ceil(file.size / chunkSize);
                 const fileUuid = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 
@@ -1707,7 +1707,7 @@
                 if (progressSection) progressSection.style.display = 'block';
                 if (submitBtn) submitBtn.disabled = true;
 
-                const chunkSize = 2 * 1024 * 1024; // 2MB chunk size
+                const chunkSize = 512 * 1024; // 512KB chunk size (fits under default Nginx 1MB client_max_body_size)
                 const totalChunks = Math.ceil(file.size / chunkSize);
                 const uuid = 'vid_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
                 const csrfToken = document.querySelector('input[name="_token"]').value;

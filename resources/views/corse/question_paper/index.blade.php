@@ -387,7 +387,7 @@
                         <input type="hidden" name="paper_type" value="mocktest">
 
                         <div class="alert alert-info py-2 small mb-3">
-                            <i class="icon-info me-1"></i> Generate a subject-specific or chapter-specific mock test paper from your question bank.
+                            <i class="icon-info me-1"></i> Create a subject-specific or chapter-specific mock test paper structure. You can add or type questions manually into it after creation.
                         </div>
 
                         <div class="row mb-3">
@@ -419,15 +419,9 @@
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="mock_title" class="fw-semibold">Paper Title <span class="text-danger">*</span></label>
-                                <input type="text" name="title" id="mock_title" class="form-control" placeholder="e.g. Biology Full Chapter Mock Test 1" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="mock_limit" class="fw-semibold">Question Limit (Max 180)</label>
-                                <input type="number" name="limit" id="mock_limit" class="form-control" value="180" min="1" max="180" required>
-                            </div>
+                        <div class="form-group mb-3">
+                            <label for="mock_title" class="fw-semibold">Paper Title <span class="text-danger">*</span></label>
+                            <input type="text" name="title" id="mock_title" class="form-control" placeholder="e.g. Biology Full Chapter Mock Test 1" required>
                         </div>
 
                         <div class="form-group mb-3">
@@ -458,7 +452,7 @@
 
                         <div class="modal-footer px-0 pb-0">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-success fw-semibold"><i class="icon-magic-wand me-1"></i> Generate Subject Mock Test</button>
+                            <button type="submit" class="btn btn-primary fw-semibold"><i class="icon-plus me-1"></i> Create Subject Mock Test</button>
                         </div>
                     </form>
                 </div>
@@ -470,7 +464,7 @@
                         <input type="hidden" name="paper_type" value="combined">
 
                         <div class="alert alert-purple py-2 small mb-3" style="background-color: #f3ebff; color: #5a189a;">
-                            <i class="icon-info me-1"></i> Create a multi-subject combined question paper. You can dynamically specify how many questions to pull per subject (e.g. Physics: 45, Chemistry: 45, Biology: 90). Total limit: 180 questions.
+                            <i class="icon-info me-1"></i> Create a multi-subject combined question paper. You can add or type questions manually for each subject after creation.
                         </div>
 
                         <div class="row mb-3">
@@ -486,26 +480,6 @@
                             <div class="col-md-6">
                                 <label for="comb_title" class="fw-semibold">Paper Title <span class="text-danger">*</span></label>
                                 <input type="text" name="title" id="comb_title" class="form-control" placeholder="e.g. NEET Grand Combined Test Series #1" required>
-                            </div>
-                        </div>
-
-                        <div class="card p-3 mb-3 border bg-light">
-                            <h6 class="fw-bold text-dark mb-2"><i class="icon-sliders me-1 text-primary"></i> Dynamic Per-Subject Question Distribution (Max 180 Total):</h6>
-                            <div class="row">
-                                @foreach($subjects as $sub)
-                                    <div class="col-md-4 mb-2">
-                                        <label for="quota_{{ $sub->id }}" class="form-label small fw-semibold text-truncate d-block mb-1" title="{{ $sub->name }}">
-                                            {{ $sub->name }} <span class="text-muted">({{ $sub->questions_count }} avail)</span>
-                                        </label>
-                                        @php
-                                            $defaultVal = 45;
-                                            if (str_contains(strtolower($sub->name), 'bio')) $defaultVal = 90;
-                                        @endphp
-                                        <input type="number" name="quotas[{{ $sub->id }}]" id="quota_{{ $sub->id }}" 
-                                               class="form-control form-control-sm quota-input" 
-                                               value="{{ min($defaultVal, $sub->questions_count) }}" min="0" max="180">
-                                    </div>
-                                @endforeach
                             </div>
                         </div>
 
@@ -537,7 +511,7 @@
 
                         <div class="modal-footer px-0 pb-0">
                             <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary fw-semibold"><i class="icon-magic-wand me-1"></i> Generate Combined Paper</button>
+                            <button type="submit" class="btn btn-purple text-white fw-semibold" style="background-color: #6C63FF; border-color: #6C63FF;"><i class="icon-plus me-1"></i> Create Combined Paper</button>
                         </div>
                     </form>
                 </div>

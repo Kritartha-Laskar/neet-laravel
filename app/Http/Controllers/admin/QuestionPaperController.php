@@ -54,6 +54,9 @@ class QuestionPaperController extends Controller
     /**
      * Show a single question paper with all questions grouped by subject and unattached available questions.
      */
+    /**
+     * Show a single question paper with all questions grouped by subject and unattached available questions.
+     */
     public function show(QuestionPaper $questionPaper)
     {
         $questionPaper->load(['course', 'subject', 'chapter', 'questions.subject', 'questions.answers']);
@@ -77,11 +80,13 @@ class QuestionPaperController extends Controller
         $grouped = $questionPaper->questions
             ->groupBy(fn($q) => optional($q->subject)->name ?? 'Unassigned');
 
-        return view('corse.question_paper.show', compact('questionPaper', 'grouped', 'availableQuestions'));
+        $subjects = Subject::orderBy('name')->get();
+
+        return view('corse.question_paper.show', compact('questionPaper', 'grouped', 'availableQuestions', 'subjects'));
     }
 
     /**
-     * Store/Generate a new question paper (Mock Test or Combined).
+     * Store/Create a new question paper (Mock Test or Combined).
      */
     public function store(Request $request)
     {
@@ -96,169 +101,54 @@ class QuestionPaperController extends Controller
             'description'       => 'nullable|string|max:500',
             'subject_id'        => 'required_if:paper_type,mocktest|nullable|exists:subjects,id',
             'chapter_id'        => 'nullable|exists:chapters,id',
-            'limit'             => 'nullable|integer|min:1|max:180',
-            'quotas'            => 'nullable|array',
-            'quotas.*'          => 'nullable|integer|min:0|max:180',
         ]);
-
-        $totalQuestionsInDb = Question::count();
-        if ($totalQuestionsInDb === 0) {
-            return back()->withErrors(['error' => 'No questions found in the database. Please add questions first.']);
-        }
 
         $paperType = $validated['paper_type'];
         $courseId  = $validated['course_id'] ?? null;
         $chapterId = $validated['chapter_id'] ?? null;
-        $pivotRows = [];
-        $order     = 1;
-        $quotasMap = [];
 
         if ($paperType === 'mocktest') {
-            // Subject-wise / Chapter-wise Mock Test
             $subjectId = $validated['subject_id'];
             $subject   = Subject::findOrFail($subjectId);
-            $limit     = min($validated['limit'] ?? 180, 180);
 
-            // Auto-fill course_id from subject if not selected
             if (!$courseId && $subject->course_id) {
                 $courseId = $subject->course_id;
             }
 
-            $questionQuery = Question::where('subject_id', $subjectId)->whereNull('deleted_at');
-            if ($chapterId) {
-                $questionQuery->where('chapter_id', $chapterId);
-            }
-
-            $questionIds = $questionQuery->inRandomOrder()->limit($limit)->pluck('id');
-
-            // Fallback: If requested chapter doesn't have enough questions, grab additional from subject
-            if ($chapterId && count($questionIds) < $limit) {
-                $extraIds = Question::where('subject_id', $subjectId)
-                    ->whereNotIn('id', $questionIds)
-                    ->whereNull('deleted_at')
-                    ->inRandomOrder()
-                    ->limit($limit - count($questionIds))
-                    ->pluck('id');
-                $questionIds = $questionIds->merge($extraIds);
-            }
-
-            foreach ($questionIds as $qid) {
-                $pivotRows[] = [
-                    'question_paper_id' => 0,
-                    'question_id'       => $qid,
-                    'order'             => $order++,
-                    'marks'             => 4,
-                    'created_at'        => now(),
-                    'updated_at'        => now(),
-                ];
-            }
-
-            $quotasMap = [$subject->name => count($questionIds)];
-
             $paper = QuestionPaper::create([
                 'title'            => $validated['title'],
-                'description'      => $validated['description'] ?? ("Mock test paper for subject " . $subject->name),
-                'exam_name'        => $validated['exam_name'] ?? 'NEET Mock',
+                'description'      => $validated['description'] ?? ("Mock test paper for " . $subject->name),
+                'exam_name'        => $validated['exam_name'] ?? 'NEET Subject Mock',
                 'course_id'        => $courseId,
                 'paper_type'       => 'mocktest',
                 'subject_id'       => $subjectId,
                 'chapter_id'       => $chapterId,
-                'subject_quotas'   => $quotasMap,
+                'subject_quotas'   => [$subject->name => 0],
                 'exam_year'        => $validated['exam_year'] ?? date('Y'),
                 'duration_minutes' => $validated['duration_minutes'] ?? 180,
-                'total_marks'      => $validated['total_marks'] ?? (count($pivotRows) * 4),
-                'total_questions'  => count($pivotRows),
+                'total_marks'      => $validated['total_marks'] ?? 720,
+                'total_questions'  => 0,
             ]);
 
         } else {
-            // Combined Multi-Subject Question Paper
-            $userQuotas = $validated['quotas'] ?? [];
-            $allSubjectsQuery = Subject::query();
-            if ($courseId) {
-                $allSubjectsQuery->where('course_id', $courseId);
-            }
-            $allSubjects = $allSubjectsQuery->get();
-
-            if (empty($userQuotas)) {
-                $defaultQuotas = ['Biology' => 90, 'Physics' => 45, 'Chemistry' => 45];
-                foreach ($allSubjects as $sub) {
-                    $matchName = $sub->name;
-                    $quota = $defaultQuotas[$matchName] ?? 30;
-                    $userQuotas[$sub->id] = $quota;
-                }
-            }
-
-            $totalRequested = array_sum($userQuotas);
-
-            foreach ($userQuotas as $subId => $quota) {
-                if ($quota <= 0) continue;
-                $subject = Subject::find($subId);
-                if (!$subject) continue;
-
-                $qIds = Question::where('subject_id', $subId)
-                    ->whereNull('deleted_at')
-                    ->inRandomOrder()
-                    ->limit($quota)
-                    ->pluck('id');
-
-                foreach ($qIds as $qid) {
-                    $pivotRows[] = [
-                        'question_paper_id' => 0,
-                        'question_id'       => $qid,
-                        'order'             => $order++,
-                        'marks'             => 4,
-                        'created_at'        => now(),
-                        'updated_at'        => now(),
-                    ];
-                }
-
-                $quotasMap[$subject->name] = count($qIds);
-            }
-
-            if (empty($pivotRows)) {
-                $fallbackLimit = min($totalRequested > 0 ? $totalRequested : 180, 180);
-                $qQuery = Question::whereNull('deleted_at');
-                if ($courseId) {
-                    $qQuery->whereHas('subject', fn($q) => $q->where('course_id', $courseId));
-                }
-                $qIds = $qQuery->inRandomOrder()->limit($fallbackLimit)->pluck('id');
-
-                foreach ($qIds as $qid) {
-                    $pivotRows[] = [
-                        'question_paper_id' => 0,
-                        'question_id'       => $qid,
-                        'order'             => $order++,
-                        'marks'             => 4,
-                        'created_at'        => now(),
-                        'updated_at'        => now(),
-                    ];
-                }
-            }
-
             $paper = QuestionPaper::create([
                 'title'            => $validated['title'],
                 'description'      => $validated['description'] ?? 'Combined multi-subject question paper.',
-                'exam_name'        => $validated['exam_name'] ?? 'NEET Combined',
+                'exam_name'        => $validated['exam_name'] ?? 'NEET Combined Test',
                 'course_id'        => $courseId,
                 'paper_type'       => 'combined',
                 'subject_id'       => null,
-                'subject_quotas'   => $quotasMap,
+                'chapter_id'       => null,
+                'subject_quotas'   => [],
                 'exam_year'        => $validated['exam_year'] ?? date('Y'),
                 'duration_minutes' => $validated['duration_minutes'] ?? 180,
-                'total_marks'      => $validated['total_marks'] ?? (count($pivotRows) * 4),
-                'total_questions'  => count($pivotRows),
+                'total_marks'      => $validated['total_marks'] ?? 720,
+                'total_questions'  => 0,
             ]);
         }
 
-        if (!empty($pivotRows)) {
-            foreach ($pivotRows as &$row) {
-                $row['question_paper_id'] = $paper->id;
-            }
-            DB::table('question_paper_question')->insert($pivotRows);
-        }
-
         return redirect()->route('admin.question-papers.show', $paper->id)
-            ->with('success', 'Question Paper created successfully with ' . count($pivotRows) . ' questions.');
+            ->with('success', 'Question Paper created successfully! You can now type new questions or select existing questions to add to this paper.');
     }
 
     /**

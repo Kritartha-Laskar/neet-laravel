@@ -3,13 +3,37 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>@yield('title', 'Admin') | NeetCommon</title>
+    <title>@yield('title', 'Admin') | ToppersChoice</title>
     <link rel="stylesheet" href="{{ asset('src/assets/vendors/simple-line-icons/css/simple-line-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('src/assets/vendors/flag-icon-css/css/flag-icons.min.css') }}">
     <link rel="stylesheet" href="{{ asset('src/assets/vendors/css/vendor.bundle.base.css') }}">
     <link rel="stylesheet" href="{{ asset('src/assets/vendors/font-awesome/css/font-awesome.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('src/assets/css/vertical-light-layout/style.css') }}">
-    <link rel="shortcut icon" href="{{ asset('src/assets/images/favicon.png') }}" />
+    <link rel="shortcut icon" href="{{ asset('src/assets/images/logo_TC.png') }}" />
+    <style>
+        nav .pagination {
+            margin-bottom: 0;
+            gap: 2px;
+        }
+        .page-item .page-link {
+            border-radius: 4px;
+            color: #4a4a4a;
+            font-weight: 500;
+            padding: 6px 12px;
+        }
+        .page-item.active .page-link {
+            background-color: #7b40f2;
+            border-color: #7b40f2;
+            color: #ffffff;
+        }
+        .page-item.disabled .page-link {
+            color: #a0a0a0;
+        }
+        svg.w-5.h-5 {
+            width: 18px;
+            height: 18px;
+        }
+    </style>
     @stack('styles')
 </head>
 <body>
@@ -18,11 +42,12 @@
     <!-- NAVBAR -->
     <nav class="navbar default-layout-navbar col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
         <div class="text-center navbar-brand-wrapper d-flex align-items-center justify-content-center">
-            <a class="navbar-brand brand-logo" href="{{ route('dashboard') }}">
-                <span class="text-white fw-bold fs-5">NeetCommon</span>
+            <a class="navbar-brand brand-logo text-decoration-none" href="{{ route('dashboard') }}" style="display: flex; align-items: center; gap: 8px; max-width: 185px;">
+                <img src="{{ asset('src/assets/images/logo_TC.png') }}" alt="Logo" style="height: 32px; width: 32px; object-fit: contain; border-radius: 4px; flex-shrink: 0; background: #ffffff; padding: 2px;">
+                <span class="text-white fw-bold" style="font-size: 1rem; white-space: nowrap; letter-spacing: -0.3px;">ToppersChoice</span>
             </a>
             <a class="navbar-brand brand-logo-mini" href="{{ route('dashboard') }}">
-                <span class="text-white fw-bold">NC</span>
+                <img src="{{ asset('src/assets/images/logo_TC.png') }}" alt="TC" style="height: 30px; width: 30px; object-fit: contain; border-radius: 4px; background: #ffffff; padding: 2px;">
             </a>
             <button class="navbar-toggler navbar-toggler align-self-center" type="button" data-toggle="minimize">
                 <span class="icon-menu"></span>
@@ -32,15 +57,17 @@
             <h5 class="mb-0 font-weight-medium d-none d-lg-flex">Welcome, {{ Auth::user()->name }}!</h5>
             <ul class="navbar-nav navbar-nav-right">
                 <li class="nav-item dropdown d-none d-xl-inline-flex user-dropdown">
-                    <a class="nav-link dropdown-toggle" id="UserDropdown" href="#" data-toggle="dropdown" aria-expanded="false">
-                        <img class="img-xs rounded-circle ms-2" src="{{ asset('src/assets/images/faces/face8.jpg') }}" alt="Profile">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" id="UserDropdown" href="#" data-toggle="dropdown" aria-expanded="false">
+                        <i class="icon-user text-primary me-2" style="font-size: 1.1rem;"></i>
                         <span class="font-weight-normal">{{ Auth::user()->name }}</span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-right navbar-dropdown" aria-labelledby="UserDropdown" style="z-index:9999;">
                         <div class="dropdown-header text-center">
-                            <img class="img-md rounded-circle" src="{{ asset('src/assets/images/faces/face8.jpg') }}" alt="Profile">
-                            <p class="mb-1 mt-3">{{ Auth::user()->name }}</p>
-                            <p class="font-weight-light text-muted mb-0">{{ Auth::user()->gmail }}</p>
+                            <div class="d-inline-flex align-items-center justify-content-center bg-light text-primary rounded-circle mb-2 border" style="width: 44px; height: 44px; font-size: 1.2rem;">
+                                <i class="icon-user"></i>
+                            </div>
+                            <p class="mb-1 mt-1 fw-bold">{{ Auth::user()->name }}</p>
+                            <p class="font-weight-light text-muted mb-0 small">{{ Auth::user()->gmail }}</p>
                         </div>
                         <div class="dropdown-divider"></div>
                         <form method="POST" action="{{ route('logout') }}" id="logout-form-nav">
@@ -50,15 +77,6 @@
                             </button>
                         </form>
                     </div>
-                </li>
-                {{-- Always-visible logout button --}}
-                <li class="nav-item">
-                    <form method="POST" action="{{ route('logout') }}" id="logout-form-btn">
-                        @csrf
-                        <button type="submit" class="btn btn-danger btn-sm ms-2" style="margin-top:6px;">
-                            <i class="icon-power me-1"></i> Logout
-                        </button>
-                    </form>
                 </li>
             </ul>
             <button class="navbar-toggler navbar-toggler-right d-lg-none align-self-center" type="button" data-toggle="offcanvas">
@@ -75,7 +93,9 @@
                 <li class="nav-item nav-profile">
                     <a href="#" class="nav-link">
                         <div class="profile-image">
-                            <img class="img-xs rounded-circle" src="{{ asset('src/assets/images/faces/face8.jpg') }}" alt="profile">
+                            <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle" style="width: 35px; height: 35px;">
+                                <i class="icon-user"></i>
+                            </div>
                             <div class="dot-indicator bg-success"></div>
                         </div>
                         <div class="text-wrapper">
@@ -190,11 +210,17 @@
                     </a>
                 </li>
 
-                @if(Auth::user()->role === 7)
                 <li class="nav-item nav-category"><span class="nav-link">Users</span></li>
+                <li class="nav-item {{ request()->routeIs('admin.users.index') ? 'active' : '' }}">
+                    <a class="nav-link" href="{{ route('admin.users.index') }}">
+                        <span class="menu-title">All Users</span>
+                        <i class="icon-people menu-icon"></i>
+                    </a>
+                </li>
+                @if(Auth::check() && (int)Auth::user()->role === 7)
                 <li class="nav-item {{ request()->routeIs('admin.users.create') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('admin.users.create') }}">
-                        <span class="menu-title">Create Admin</span>
+                        <span class="menu-title">Create User</span>
                         <i class="icon-user-follow menu-icon"></i>
                     </a>
                 </li>
@@ -237,7 +263,7 @@
             <footer class="footer">
                 <div class="d-sm-flex justify-content-center justify-content-sm-between">
                     <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">
-                        Copyright &copy; {{ date('Y') }} NeetCommon. All rights reserved.
+                        Copyright &copy; {{ date('Y') }} ToppersChoice. All rights reserved.
                     </span>
                 </div>
             </footer>

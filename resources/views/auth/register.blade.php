@@ -3,12 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Register | NeetCommon</title>
+    <title>Register | ToppersChoice</title>
     <link rel="stylesheet" href="{{ asset('src/assets/vendors/simple-line-icons/css/simple-line-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('src/assets/vendors/flag-icon-css/css/flag-icons.min.css') }}">
     <link rel="stylesheet" href="{{ asset('src/assets/vendors/css/vendor.bundle.base.css') }}">
     <link rel="stylesheet" href="{{ asset('src/assets/css/vertical-light-layout/style.css') }}">
-    <link rel="shortcut icon" href="{{ asset('src/assets/images/favicon.png') }}" />
+    <link rel="shortcut icon" href="{{ asset('src/assets/images/logo_TC.png') }}" />
 </head>
 <body>
     <div class="container-scroller">
@@ -16,10 +16,10 @@
             <div class="content-wrapper d-flex align-items-center auth">
                 <div class="row flex-grow">
                     <div class="col-lg-4 mx-auto">
-                        <div class="auth-form-light text-left p-5">
+                        <div class="auth-form-light text-left p-5 shadow-sm rounded">
 
-                            <div class="brand-logo">
-                                <h3 class="text-primary fw-bold">NeetCommon</h3>
+                            <div class="brand-logo text-center mb-4">
+                                <img src="{{ asset('src/assets/images/logo_TC.png') }}" alt="Toppers Choice" style="max-height: 90px; width: auto; max-width: 100%;">
                             </div>
 
                             <h4>New here?</h4>

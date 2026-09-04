@@ -49,12 +49,7 @@ Route::middleware(['auth', 'check.role'])->group(function () {
         Route::delete('question-papers/{questionPaper}/questions/{question}', [\App\Http\Controllers\admin\QuestionPaperController::class, 'removeQuestion'])->name('question-papers.remove-question');
         Route::resource('resources',       \App\Http\Controllers\admin\ResourceController::class)->except(['edit', 'update', 'show']);
         Route::post('resources/{resource}/toggle-status', [\App\Http\Controllers\admin\ResourceController::class, 'toggleStatus'])->name('resources.toggle-status');
-    });
-
-    // Super Admin only routes
-    Route::middleware('check.super_admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('users/create', [\App\Http\Controllers\admin\UserController::class, 'create'])->name('users.create');
-        Route::post('users/store', [\App\Http\Controllers\admin\UserController::class, 'store'])->name('users.store');
+        Route::resource('users',           \App\Http\Controllers\admin\UserController::class);
     });
 });
 

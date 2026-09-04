@@ -137,7 +137,9 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="mt-4">{{ $questions->links() }}</div>
+                <div class="mt-4 d-flex justify-content-center justify-content-md-end">
+                    {{ $questions->withQueryString()->links() }}
+                </div>
             </div>
         </div>
     </div>

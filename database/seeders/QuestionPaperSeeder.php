@@ -149,6 +149,7 @@ class QuestionPaperSeeder extends Seeder
                     'subject_id'    => $subject->id,
                     'chapter_id'    => $assignedChapter?->id,
                     'question'      => $questionText,
+                    'reason'        => "Explanation: '{$options[0]}' is the correct choice based on standard NCERT / NEET syllabus guidelines.",
                     'question_type' => 'mcq',
                 ]);
 
@@ -157,6 +158,9 @@ class QuestionPaperSeeder extends Seeder
                         'question_id' => $q->id,
                         'answer'      => $optText,
                         'is_correct'  => ($idx === 0) ? 1 : 0,
+                        'reason'      => ($idx === 0)
+                            ? "Correct: '{$optText}' is the accurate answer for this question."
+                            : "Incorrect: '{$optText}' is not the right choice for this question.",
                     ]);
                 }
             }

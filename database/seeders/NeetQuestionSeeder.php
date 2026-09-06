@@ -248,7 +248,10 @@ class NeetQuestionSeeder extends Seeder
 
                 $question = Question::firstOrCreate(
                     ['subject_id' => $subject->id, 'question' => $text],
-                    ['question_type' => 'mcq']
+                    [
+                        'question_type' => 'mcq',
+                        'reason'        => "Explanation: Correct answer is derived according to NCERT {$subjectName} syllabus principles.",
+                    ]
                 );
 
                 // Seed 4 answers for each fresh question
@@ -256,10 +259,14 @@ class NeetQuestionSeeder extends Seeder
                     $correctIdx = rand(0, 3);
                     $options = $this->makeOptions($subjectName, $text);
                     foreach ($options as $idx => $option) {
+                        $isCorrect = ($idx === $correctIdx);
                         Answer::create([
                             'question_id' => $question->id,
                             'answer'      => $option,
-                            'is_correct'  => ($idx === $correctIdx),
+                            'is_correct'  => $isCorrect,
+                            'reason'      => $isCorrect
+                                ? "Correct: '{$option}' is the valid answer."
+                                : "Incorrect: '{$option}' is incorrect for this prompt.",
                         ]);
                     }
                     $created++;

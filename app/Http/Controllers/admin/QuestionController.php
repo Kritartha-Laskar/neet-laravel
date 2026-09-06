@@ -94,13 +94,14 @@ class QuestionController extends Controller
             'question'      => 'required|string',
             'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'question_type' => 'required|in:mcq,msq,descripted',
+            'reason'        => 'nullable|string',
             'answers'       => 'nullable|array|min:2',
             'answers.*'     => 'required|string|max:500',
             'is_correct'    => 'nullable|array',
             'is_correct.*'  => 'in:0,1',
         ]);
 
-        $data = $request->only('subject_id', 'chapter_id', 'question', 'question_type');
+        $data = $request->only('subject_id', 'chapter_id', 'question', 'question_type', 'reason');
 
         if ($request->hasFile('image')) {
             $imageFile = $request->file('image');
@@ -113,8 +114,9 @@ class QuestionController extends Controller
         $question = Question::create($data);
 
         // Save each answer option
-        $answers    = $request->input('answers', []);
-        $isCorrects = $request->input('is_correct', []);
+        $answers       = $request->input('answers', []);
+        $isCorrects    = $request->input('is_correct', []);
+        $answerReasons = $request->input('answer_reasons', []);
 
         foreach ($answers as $idx => $answerText) {
             if (trim($answerText) === '') continue;
@@ -123,6 +125,7 @@ class QuestionController extends Controller
                 'question_id' => $question->id,
                 'answer'      => $answerText,
                 'is_correct'  => ($isCorrects[$idx] ?? 0) == 1,
+                'reason'      => $answerReasons[$idx] ?? null,
             ]);
         }
 
@@ -175,13 +178,14 @@ class QuestionController extends Controller
             'question'      => 'required|string',
             'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'question_type' => 'required|in:mcq,msq,descripted',
+            'reason'        => 'nullable|string',
             'answers'       => 'nullable|array|min:2',
             'answers.*'     => 'required|string|max:500',
             'is_correct'    => 'nullable|array',
             'is_correct.*'  => 'in:0,1',
         ]);
 
-        $data = $request->only('subject_id', 'chapter_id', 'question', 'question_type');
+        $data = $request->only('subject_id', 'chapter_id', 'question', 'question_type', 'reason');
 
         if ($request->hasFile('image')) {
             if ($question->image) {
@@ -197,8 +201,9 @@ class QuestionController extends Controller
 
         if ($request->has('answers')) {
             $question->answers()->delete();
-            $answers    = $request->input('answers', []);
-            $isCorrects = $request->input('is_correct', []);
+            $answers       = $request->input('answers', []);
+            $isCorrects    = $request->input('is_correct', []);
+            $answerReasons = $request->input('answer_reasons', []);
 
             foreach ($answers as $idx => $answerText) {
                 if (trim($answerText) === '') continue;
@@ -207,6 +212,7 @@ class QuestionController extends Controller
                     'question_id' => $question->id,
                     'answer'      => $answerText,
                     'is_correct'  => ($isCorrects[$idx] ?? 0) == 1,
+                    'reason'      => $answerReasons[$idx] ?? null,
                 ]);
             }
         }

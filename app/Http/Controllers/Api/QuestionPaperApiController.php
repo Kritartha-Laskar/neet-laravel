@@ -87,12 +87,14 @@ class QuestionPaperApiController extends Controller
                     'order'         => $q->pivot->order,
                     'marks'         => $q->pivot->marks,
                     'question'      => $q->question,
+                    'reason'        => $q->reason,
                     'image_url'     => $q->image_url,
                     'question_type' => $q->question_type,
                     'options'       => $q->answers->map(fn($a) => [
                         'id'         => $a->id,
                         'answer'     => $a->answer,
                         'is_correct' => $a->is_correct,
+                        'reason'     => $a->reason,
                     ])->values(),
                 ])->values(),
             ])->values();

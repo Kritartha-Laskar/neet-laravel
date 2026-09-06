@@ -176,6 +176,9 @@
                                     <td class="fw-bold text-muted">{{ $globalNo++ }}</td>
                                     <td>
                                         <div class="fw-semibold text-dark">{{ $question->question }}</div>
+                                        @if($question->reason)
+                                            <div class="small text-muted mt-1"><i class="icon-info me-1 text-info"></i><span class="fw-bold text-dark">Reason:</span> {{ $question->reason }}</div>
+                                        @endif
                                         @if($question->image_url)
                                             <a href="{{ $question->image_url }}" target="_blank" class="badge badge-info mt-1 text-decoration-none">
                                                 <i class="icon-picture me-1"></i> View Attached Image
@@ -202,6 +205,9 @@
                                                         <span>{{ $answer->answer }}
                                                             @if($answer->is_correct)
                                                                 <i class="icon-check text-success" title="Correct Answer"></i>
+                                                            @endif
+                                                            @if($answer->reason)
+                                                                <div class="text-muted fst-italic" style="font-size:0.75rem;">Reason: {{ $answer->reason }}</div>
                                                             @endif
                                                         </span>
                                                     </div>
@@ -310,18 +316,26 @@
                         <input type="file" name="image" id="modal_question_image" class="form-control" accept="image/*">
                     </div>
 
+                    <div class="form-group mb-3">
+                        <label for="modal_question_reason" class="fw-semibold">Reason / Explanation <small class="text-muted">(Optional - Reason for the correct answer)</small></label>
+                        <textarea name="reason" id="modal_question_reason" rows="2" class="form-control" placeholder="Enter reason or explanation for correct answer..."></textarea>
+                    </div>
+
                     <h6 class="fw-bold text-dark mt-4 mb-2"><i class="icon-list me-1 text-primary"></i> Answer Options &amp; Correct Answer Selection:</h6>
                     
                     @php $optionLabels = ['A', 'B', 'C', 'D']; @endphp
                     @foreach($optionLabels as $idx => $label)
                         <div class="card p-2 mb-2 bg-light border">
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex align-items-center gap-2 mb-1">
                                 <span class="badge bg-primary text-white fw-bold px-2 py-1">{{ $label }}</span>
                                 <input type="text" name="answers[{{ $idx }}]" class="form-control form-control-sm" placeholder="Option {{ $label }} text" required>
                                 <div class="form-check ms-2 mb-0 text-nowrap">
                                     <input class="form-check-input" type="radio" name="correct_option" value="{{ $idx }}" id="correct_radio_{{ $idx }}" {{ $idx === 0 ? 'checked' : '' }} onchange="updateCorrectAnswerIndex({{ $idx }})">
                                     <label class="form-check-label small fw-bold text-success" for="correct_radio_{{ $idx }}">Correct</label>
                                 </div>
+                            </div>
+                            <div class="ms-4">
+                                <input type="text" name="answer_reasons[{{ $idx }}]" class="form-control form-control-sm" placeholder="Reason / Explanation for Option {{ $label }} (Optional)">
                             </div>
                         </div>
                         <input type="hidden" name="is_correct[{{ $idx }}]" id="is_correct_val_{{ $idx }}" value="{{ $idx === 0 ? '1' : '0' }}">

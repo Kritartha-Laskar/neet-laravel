@@ -108,7 +108,7 @@
                     </div>
 
                     {{-- Question Type --}}
-                    <div class="form-group">
+                    <div class="form-group mb-3">
                         <label for="question_type">Question Type <span class="text-danger">*</span></label>
                         <select name="question_type" id="question_type"
                                 class="form-select form-select-lg @error('question_type') is-invalid @enderror" required>
@@ -118,6 +118,15 @@
                             <option value="descripted" {{ old('question_type') == 'descripted' ? 'selected' : '' }}>Descriptive — Written Answer</option>
                         </select>
                         @error('question_type')<span class="invalid-feedback">{{ $message }}</span>@enderror
+                    </div>
+
+                    {{-- Reason / Explanation --}}
+                    <div class="form-group mb-3">
+                        <label for="reason" class="fw-semibold">Reason / Explanation <small class="text-muted">(Optional - Reason for the correct answer)</small></label>
+                        <textarea name="reason" id="reason" rows="3"
+                                  class="form-control @error('reason') is-invalid @enderror"
+                                  placeholder="Enter explanation or reason for the correct answer">{{ old('reason') }}</textarea>
+                        @error('reason')<span class="invalid-feedback">{{ $message }}</span>@enderror
                     </div>
 
                     {{-- ══════════════════════════════════════════════════════
@@ -141,36 +150,51 @@
                             {{-- Restore old values on validation failure --}}
                             @if(old('answers'))
                                 @foreach(old('answers') as $i => $oldAnswer)
-                                <div class="answer-row d-flex align-items-center gap-2 mb-2">
-                                    <span class="answer-label fw-bold text-muted" style="min-width:22px;">{{ chr(65+$i) }}.</span>
-                                    <input type="text" name="answers[]"
-                                           class="form-control"
-                                           placeholder="Enter answer option"
-                                           value="{{ $oldAnswer }}" required>
-                                    <select name="is_correct[]" class="form-select" style="max-width:140px;">
-                                        <option value="0" {{ (old('is_correct.'.$i, 0) == 0) ? 'selected' : '' }}>❌ Wrong</option>
-                                        <option value="1" {{ (old('is_correct.'.$i, 0) == 1) ? 'selected' : '' }}>✅ Correct</option>
-                                    </select>
-                                    <button type="button" class="btn btn-danger btn-sm remove-answer" title="Remove">
-                                        <i class="icon-trash"></i>
-                                    </button>
+                                <div class="answer-row card p-2 mb-2 bg-light border">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="answer-label fw-bold text-muted" style="min-width:22px;">{{ chr(65+$i) }}.</span>
+                                        <input type="text" name="answers[]"
+                                               class="form-control"
+                                               placeholder="Enter answer option"
+                                               value="{{ $oldAnswer }}" required>
+                                        <select name="is_correct[]" class="form-select" style="max-width:140px;">
+                                            <option value="0" {{ (old('is_correct.'.$i, 0) == 0) ? 'selected' : '' }}>❌ Wrong</option>
+                                            <option value="1" {{ (old('is_correct.'.$i, 0) == 1) ? 'selected' : '' }}>✅ Correct</option>
+                                        </select>
+                                        <button type="button" class="btn btn-danger btn-sm remove-answer" title="Remove">
+                                            <i class="icon-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="ms-4">
+                                        <input type="text" name="answer_reasons[]"
+                                               class="form-control form-control-sm"
+                                               placeholder="Reason / Explanation for Option {{ chr(65+$i) }} (Optional)"
+                                               value="{{ old('answer_reasons.'.$i) }}">
+                                    </div>
                                 </div>
                                 @endforeach
                             @else
                                 {{-- Default: 4 blank rows --}}
                                 @foreach(['A','B','C','D'] as $letter)
-                                <div class="answer-row d-flex align-items-center gap-2 mb-2">
-                                    <span class="answer-label fw-bold text-muted" style="min-width:22px;">{{ $letter }}.</span>
-                                    <input type="text" name="answers[]"
-                                           class="form-control"
-                                           placeholder="Enter answer option {{ $letter }}" required>
-                                    <select name="is_correct[]" class="form-select" style="max-width:140px;">
-                                        <option value="0">❌ Wrong</option>
-                                        <option value="1">✅ Correct</option>
-                                    </select>
-                                    <button type="button" class="btn btn-danger btn-sm remove-answer" title="Remove">
-                                        <i class="icon-trash"></i>
-                                    </button>
+                                <div class="answer-row card p-2 mb-2 bg-light border">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="answer-label fw-bold text-muted" style="min-width:22px;">{{ $letter }}.</span>
+                                        <input type="text" name="answers[]"
+                                               class="form-control"
+                                               placeholder="Enter answer option {{ $letter }}" required>
+                                        <select name="is_correct[]" class="form-select" style="max-width:140px;">
+                                            <option value="0">❌ Wrong</option>
+                                            <option value="1">✅ Correct</option>
+                                        </select>
+                                        <button type="button" class="btn btn-danger btn-sm remove-answer" title="Remove">
+                                            <i class="icon-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="ms-4">
+                                        <input type="text" name="answer_reasons[]"
+                                               class="form-control form-control-sm"
+                                               placeholder="Reason / Explanation for Option {{ $letter }} (Optional)">
+                                    </div>
                                 </div>
                                 @endforeach
                             @endif
@@ -201,8 +225,11 @@
     /** Re-label every row with A, B, C … */
     function reLabel() {
         container.querySelectorAll('.answer-row').forEach(function (row, idx) {
+            const letter = String.fromCharCode(65 + idx);
             const lbl = row.querySelector('.answer-label');
-            if (lbl) lbl.textContent = String.fromCharCode(65 + idx) + '.';
+            if (lbl) lbl.textContent = letter + '.';
+            const reasonInput = row.querySelector('input[name="answer_reasons[]"]');
+            if (reasonInput) reasonInput.placeholder = 'Reason / Explanation for Option ' + letter + ' (Optional)';
         });
     }
 
@@ -211,17 +238,22 @@
         const idx  = container.querySelectorAll('.answer-row').length;
         const letter = String.fromCharCode(65 + idx);
         const div  = document.createElement('div');
-        div.className = 'answer-row d-flex align-items-center gap-2 mb-2';
+        div.className = 'answer-row card p-2 mb-2 bg-light border';
         div.innerHTML =
-            '<span class="answer-label fw-bold text-muted" style="min-width:22px;">' + letter + '.</span>' +
-            '<input type="text" name="answers[]" class="form-control" placeholder="Enter answer option ' + letter + '" required>' +
-            '<select name="is_correct[]" class="form-select" style="max-width:140px;">' +
-                '<option value="0">❌ Wrong</option>' +
-                '<option value="1">✅ Correct</option>' +
-            '</select>' +
-            '<button type="button" class="btn btn-danger btn-sm remove-answer" title="Remove">' +
-                '<i class="icon-trash"></i>' +
-            '</button>';
+            '<div class="d-flex align-items-center gap-2 mb-1">' +
+                '<span class="answer-label fw-bold text-muted" style="min-width:22px;">' + letter + '.</span>' +
+                '<input type="text" name="answers[]" class="form-control" placeholder="Enter answer option ' + letter + '" required>' +
+                '<select name="is_correct[]" class="form-select" style="max-width:140px;">' +
+                    '<option value="0">❌ Wrong</option>' +
+                    '<option value="1">✅ Correct</option>' +
+                '</select>' +
+                '<button type="button" class="btn btn-danger btn-sm remove-answer" title="Remove">' +
+                    '<i class="icon-trash"></i>' +
+                '</button>' +
+            '</div>' +
+            '<div class="ms-4">' +
+                '<input type="text" name="answer_reasons[]" class="form-control form-control-sm" placeholder="Reason / Explanation for Option ' + letter + ' (Optional)">' +
+            '</div>';
         return div;
     }
 

@@ -70,6 +70,7 @@ class ClassApiController extends Controller
             'id'           => $q->id,
             'item_type'    => 'question',
             'question'     => $q->question,
+            'reason'       => $q->reason,
             'image_url'    => $q->image_url,
             'type'         => $q->question_type,
             'question_type'=> $q->question_type,
@@ -79,11 +80,13 @@ class ClassApiController extends Controller
                 'id'         => $a->id,
                 'answer'     => $a->answer,
                 'is_correct' => (bool)$a->is_correct,
+                'reason'     => $a->reason,
             ]),
             'options'      => $q->answers->map(fn($a) => [
                 'id'         => $a->id,
                 'answer'     => $a->answer,
                 'is_correct' => (bool)$a->is_correct,
+                'reason'     => $a->reason,
             ]),
             'created_at'   => $q->created_at->toDateString(),
         ]);

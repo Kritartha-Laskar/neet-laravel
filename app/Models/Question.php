@@ -10,7 +10,7 @@ class Question extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['subject_id', 'chapter_id', 'study_class_id', 'question', 'image', 'question_type', 'sort_order'];
+    protected $fillable = ['subject_id', 'chapter_id', 'study_class_id', 'question', 'image', 'question_type', 'sort_order', 'reason'];
 
     protected $with = ['answers'];
 

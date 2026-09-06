@@ -1039,15 +1039,25 @@
                                             </div>
                                         </div>
 
+                                        <div class="form-group mb-3">
+                                            <label for="dash_modal_reason" class="form-label fw-bold">Reason / Explanation <small class="text-muted">(Optional)</small></label>
+                                            <textarea name="reason" id="dash_modal_reason" rows="2" class="form-control" placeholder="Enter explanation or reason for the correct answer..."></textarea>
+                                        </div>
+
                                         <h6 class="fw-bold mt-2 mb-3 text-purple">Answer Options (Select correct option):</h6>
                                         
                                         @foreach(['A', 'B', 'C', 'D'] as $index => $label)
-                                            <div class="input-group mb-2">
-                                                <div class="input-group-text bg-purple text-white fw-bold d-flex align-items-center">
-                                                    <input class="form-check-input mt-0 me-2" type="radio" name="correct_index" value="{{ $index }}" {{ $index === 0 ? 'checked' : '' }}>
-                                                    Option {{ $label }}
+                                            <div class="card p-2 mb-2 bg-light border">
+                                                <div class="input-group mb-1">
+                                                    <div class="input-group-text bg-purple text-white fw-bold d-flex align-items-center">
+                                                        <input class="form-check-input mt-0 me-2" type="radio" name="correct_index" value="{{ $index }}" {{ $index === 0 ? 'checked' : '' }}>
+                                                        Option {{ $label }}
+                                                    </div>
+                                                    <input type="text" name="answers[]" class="form-control" placeholder="Enter option {{ $label }} text" required>
                                                 </div>
-                                                <input type="text" name="answers[]" class="form-control" placeholder="Enter option {{ $label }} text" required>
+                                                <div class="ms-1">
+                                                    <input type="text" name="answer_reasons[]" class="form-control form-control-sm" placeholder="Reason / Explanation for Option {{ $label }} (Optional)">
+                                                </div>
                                             </div>
                                         @endforeach
                                         <small class="text-muted">Radio button marks the correct answer option.</small>
@@ -1076,14 +1086,16 @@
                                         <h5 class="fw-bold mb-3 text-dark">{{ $q->question }}</h5>
                                         <div class="list-group mb-3">
                                             @foreach($q->answers as $aIndex => $ans)
-                                                <div class="list-group-item d-flex justify-content-between align-items-center {{ $ans->is_correct ? 'list-group-item-success' : '' }}">
-                                                    <span><strong>{{ chr(65 + $aIndex) }}.</strong> {{ $ans->answer }}</span>
-                                                    @if($ans->is_correct)
                                                         <span class="badge bg-success text-white"><i class="icon-check me-1"></i> Correct Answer</span>
                                                     @endif
                                                 </div>
                                             @endforeach
                                         </div>
+                                        @if($q->reason)
+                                            <div class="alert alert-info py-2 small mb-0">
+                                                <strong><i class="icon-info me-1"></i> Reason / Explanation:</strong> {{ $q->reason }}
+                                            </div>
+                                        @endif
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>

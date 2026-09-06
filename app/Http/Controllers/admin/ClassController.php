@@ -146,6 +146,7 @@ class ClassController extends Controller
             'answers'        => 'required|array|min:2',
             'answers.*'      => 'required|string|max:500',
             'correct_index'  => 'required|integer',
+            'reason'         => 'nullable|string',
             'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
@@ -170,13 +171,15 @@ class ClassController extends Controller
             'study_class_id' => $request->study_class_id,
             'subject_id'     => $subjectId,
             'question'       => $request->question,
+            'reason'         => $request->reason,
             'image'          => $imagePath,
             'question_type'  => 'mcq',
             'sort_order'     => $request->sort_order ?? 1,
         ]);
 
-        $answers      = $request->input('answers', []);
-        $correctIndex = (int) $request->input('correct_index', 0);
+        $answers       = $request->input('answers', []);
+        $correctIndex  = (int) $request->input('correct_index', 0);
+        $answerReasons = $request->input('answer_reasons', []);
 
         foreach ($answers as $idx => $ansText) {
             if (trim($ansText) === '') continue;
@@ -184,6 +187,7 @@ class ClassController extends Controller
                 'question_id' => $question->id,
                 'answer'      => trim($ansText),
                 'is_correct'  => ($idx === $correctIndex),
+                'reason'      => $answerReasons[$idx] ?? null,
             ]);
         }
 

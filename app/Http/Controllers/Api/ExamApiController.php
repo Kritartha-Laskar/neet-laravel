@@ -263,6 +263,7 @@ class ExamApiController extends Controller
             return [
                 'question_id'        => $q->id,
                 'question'           => $q->question,
+                'reason'             => $q->reason,
                 'image_url'          => $q->image_url,
                 'selected_answer_id' => optional($userAns)->selected_answer_id,
                 'is_correct'         => optional($userAns)->is_correct,
@@ -271,6 +272,7 @@ class ExamApiController extends Controller
                         'id'         => $a->id,
                         'answer'     => $a->answer,
                         'is_correct' => $a->is_correct,
+                        'reason'     => $a->reason,
                     ];
                 }),
             ];

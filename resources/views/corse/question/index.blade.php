@@ -100,6 +100,9 @@
                                 </td>
                                 <td>
                                     <div class="fw-semibold text-dark">{{ Str::limit($question->question, 75) }}</div>
+                                    @if($question->reason)
+                                        <div class="small text-muted mt-1"><i class="icon-info me-1 text-info"></i><span class="fw-bold text-dark">Reason:</span> {{ Str::limit($question->reason, 60) }}</div>
+                                    @endif
                                     @if($question->image)
                                         <div class="mt-1">
                                             <a href="{{ $question->image_url }}" target="_blank" title="View full image">

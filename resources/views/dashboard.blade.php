@@ -1086,7 +1086,15 @@
                                         <h5 class="fw-bold mb-3 text-dark">{{ $q->question }}</h5>
                                         <div class="list-group mb-3">
                                             @foreach($q->answers as $aIndex => $ans)
-                                                        <span class="badge bg-success text-white"><i class="icon-check me-1"></i> Correct Answer</span>
+                                                <div class="list-group-item {{ $ans->is_correct ? 'list-group-item-success' : '' }}">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <span><strong>{{ chr(65 + $aIndex) }}.</strong> {{ $ans->answer }}</span>
+                                                        @if($ans->is_correct)
+                                                            <span class="badge bg-success text-white"><i class="icon-check me-1"></i> Correct Answer</span>
+                                                        @endif
+                                                    </div>
+                                                    @if($ans->reason)
+                                                        <div class="text-muted fst-italic mt-1 small">Reason: {{ $ans->reason }}</div>
                                                     @endif
                                                 </div>
                                             @endforeach

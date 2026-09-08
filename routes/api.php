@@ -40,6 +40,7 @@ Route::middleware('auth.api')->group(function () {
     Route::post('exam/save-answer',      [ExamApiController::class, 'saveAnswer']);              // POST /api/exam/save-answer
     Route::post('exam/submit',           [ExamApiController::class, 'submitExam']);              // POST /api/exam/submit
     Route::get('exam/analytics',         [ExamApiController::class, 'getPerformanceAnalytics']); // GET  /api/exam/analytics
+    Route::get('exam/history',           [ExamApiController::class, 'getPerformanceAnalytics']); // GET  /api/exam/history
     Route::get('exam/attempt/{attempt}', [ExamApiController::class, 'getAttemptDetail']);        // GET  /api/exam/attempt/{id}
 
     // Media & Document Resources (Videos, PDFs, Images)

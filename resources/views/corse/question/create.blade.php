@@ -1,6 +1,10 @@
 @extends('layouts.admin')
 @section('title', 'Add Question')
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+@endpush
+
 @section('content')
 <div class="row">
     <div class="col-md-9 mx-auto grid-margin stretch-card">
@@ -91,11 +95,30 @@
                     </div>
 
                     {{-- Question --}}
-                    <div class="form-group">
-                        <label for="question">Question <span class="text-danger">*</span></label>
+                    <div class="form-group mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                            <label for="question" class="fw-semibold mb-0">Question <span class="text-danger">*</span></label>
+                            
+                            {{-- Math Helper Toolbar --}}
+                            <div class="btn-group btn-group-sm" role="group" aria-label="Math Toolbar">
+                                <button type="button" class="btn btn-outline-primary" onclick="insertMath('question', '\\( F = m \\cdot a \\)')" title="Multiplication (Dot)">· Dot</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="insertMath('question', '\\( W = F \\times d \\)')" title="Multiplication (Cross)">× Cross</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="insertMath('question', '\\( v = \\frac{d}{t} \\)')" title="Fraction">Fraction \(\frac{d}{t}\)</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="insertMath('question', '\\( E = mc^2 \\)')" title="Exponent">Power \(x^2\)</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="insertMath('question', '\\( v_f = v_i + at \\)')" title="Subscript">Subscript \(v_f\)</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="insertMath('question', '\\( T = 2\\pi \\sqrt{\\frac{L}{g}} \\)')" title="Square Root">√ Root</button>
+                            </div>
+                        </div>
+                        
                         <textarea name="question" id="question" rows="4"
                                   class="form-control @error('question') is-invalid @enderror"
-                                  placeholder="Enter the question text" required>{{ old('question') }}</textarea>
+                                  placeholder="Enter the question text. Use \( formula \) for math expressions" required>{{ old('question') }}</textarea>
+                        
+                        {{-- Live Math Preview Container --}}
+                        <div id="question-preview-box" class="p-3 mt-2 bg-light border border-info rounded" style="min-height: 50px; display: none;">
+                            <span class="badge bg-info text-white mb-2"><i class="icon-eye me-1"></i> Live Formula Preview</span>
+                            <div id="question-preview-content" class="fs-5 text-dark"></div>
+                        </div>
                         @error('question')<span class="invalid-feedback">{{ $message }}</span>@enderror
                     </div>
 
@@ -346,5 +369,78 @@
         }
     }
 })();
+</script>
+
+{{-- KaTeX JS & Auto Render --}}
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+<script>
+// Helper function to insert Math LaTeX expression at cursor position
+function insertMath(elementId, mathCode) {
+    const textarea = document.getElementById(elementId);
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || 0;
+    const text = textarea.value;
+    
+    textarea.value = text.substring(0, start) + mathCode + text.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + mathCode.length;
+    textarea.focus();
+    
+    // Trigger input event to update preview
+    textarea.dispatchEvent(new Event('input'));
+}
+
+// Live Math Renderer
+function updateMathPreview(textareaId, previewBoxId, previewContentId) {
+    const textarea = document.getElementById(textareaId);
+    const box = document.getElementById(previewBoxId);
+    const content = document.getElementById(previewContentId);
+    
+    if (!textarea || !box || !content) return;
+    
+    const val = textarea.value.trim();
+    if (!val) {
+        box.style.display = 'none';
+        content.innerHTML = '';
+        return;
+    }
+    
+    box.style.display = 'block';
+    content.innerHTML = val.replace(/\n/g, '<br>');
+    
+    if (window.renderMathInElement) {
+        try {
+            renderMathInElement(content, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false
+            });
+        } catch (e) {
+            console.warn("KaTeX render issue:", e);
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const qTextarea = document.getElementById('question');
+    if (qTextarea) {
+        qTextarea.addEventListener('input', function () {
+            updateMathPreview('question', 'question-preview-box', 'question-preview-content');
+        });
+        // Render initial value if editing or old values present
+        if (qTextarea.value) {
+            setTimeout(() => {
+                updateMathPreview('question', 'question-preview-box', 'question-preview-content');
+            }, 500);
+        }
+    }
+});
 </script>
 @endpush

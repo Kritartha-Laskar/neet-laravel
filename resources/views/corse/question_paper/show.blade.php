@@ -41,6 +41,11 @@
                                         <i class="icon-grid me-1"></i> COMBINED QUESTION PAPER
                                     @endif
                                 </span>
+                                @if($questionPaper->chapter)
+                                    <span class="badge bg-warning text-dark fw-bold" style="font-size: 11px;">
+                                        <i class="icon-book-open me-1"></i> {{ $questionPaper->chapter->full_title }}
+                                    </span>
+                                @endif
                                 @if($questionPaper->course)
                                     <span class="badge bg-light text-dark fw-bold" style="font-size: 11px;">
                                         <i class="icon-book-open me-1"></i> {{ $questionPaper->course->name }}
@@ -176,14 +181,21 @@
                                     <td class="fw-bold text-muted">{{ $globalNo++ }}</td>
                                     <td>
                                         <div class="fw-semibold text-dark">{{ $question->question }}</div>
-                                        @if($question->reason)
-                                            <div class="small text-muted mt-1"><i class="icon-info me-1 text-info"></i><span class="fw-bold text-dark">Reason:</span> {{ $question->reason }}</div>
-                                        @endif
-                                        @if($question->image_url)
-                                            <a href="{{ $question->image_url }}" target="_blank" class="badge badge-info mt-1 text-decoration-none">
-                                                <i class="icon-picture me-1"></i> View Attached Image
-                                            </a>
-                                        @endif
+                                        <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                            @if($question->chapter)
+                                                <span class="badge bg-light text-primary border small" style="font-size: 11px;">
+                                                    <i class="icon-book-open me-1"></i>{{ $question->chapter->full_title }}
+                                                </span>
+                                            @endif
+                                            @if($question->reason)
+                                                <div class="small text-muted"><i class="icon-info me-1 text-info"></i><span class="fw-bold text-dark">Reason:</span> {{ $question->reason }}</div>
+                                            @endif
+                                            @if($question->image_url)
+                                                <a href="{{ $question->image_url }}" target="_blank" class="badge badge-info text-decoration-none">
+                                                    <i class="icon-picture me-1"></i> View Attached Image
+                                                </a>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge badge-{{ $question->question_type === 'mcq' ? 'primary' : ($question->question_type === 'msq' ? 'warning' : 'info') }} p-1">
@@ -280,7 +292,7 @@
                                 <input type="hidden" name="subject_id" value="{{ $questionPaper->subject_id }}">
                                 <input type="text" class="form-control" value="{{ optional($questionPaper->subject)->name }}" readonly disabled>
                             @else
-                                <select name="subject_id" id="modal_subject_id" class="form-select form-control" required>
+                                <select name="subject_id" id="modal_subject_id" class="form-select form-control" required onchange="loadModal1Chapters(this.value)">
                                     <option value="">-- Select Subject --</option>
                                     @foreach($subjects as $sub)
                                         <option value="{{ $sub->id }}">{{ $sub->name }}</option>
@@ -296,11 +308,9 @@
                             @else
                                 <select name="chapter_id" id="modal_chapter_id" class="form-select form-control">
                                     <option value="">-- All Chapters / Optional --</option>
-                                    @if($questionPaper->subject && $questionPaper->subject->chapters)
-                                        @foreach($questionPaper->subject->chapters as $ch)
-                                            <option value="{{ $ch->id }}">{{ $ch->full_title }}</option>
-                                        @endforeach
-                                    @endif
+                                    @foreach($chapters as $ch)
+                                        <option value="{{ $ch->id }}" data-subject-id="{{ $ch->subject_id }}">{{ $ch->full_title }}</option>
+                                    @endforeach
                                 </select>
                             @endif
                         </div>
@@ -355,7 +365,7 @@
      MODAL 2: SELECT FROM QUESTION BANK
 ══════════════════════════════════════════════════════ -->
 <div class="modal fade" id="addQuestionsModal" tabindex="-1" role="dialog" aria-labelledby="addQuestionsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <form method="POST" action="{{ route('admin.question-papers.add-questions', $questionPaper->id) }}">
                 @csrf
@@ -379,55 +389,132 @@
                             </button>
                         </div>
                     @else
-                        <div class="row g-2 mb-3">
-                            <div class="col-md-8">
-                                <input type="text" id="modalBankSearch" class="form-control form-control-sm" placeholder="Search question text..." onkeyup="filterBankQuestions()">
-                            </div>
-                            <div class="col-md-4">
-                                <select id="modalBankSubject" class="form-select form-control-sm" onchange="filterBankQuestions()">
-                                    <option value="">-- All Subjects --</option>
-                                    @foreach($availableQuestions->pluck('subject.name')->unique()->filter() as $sName)
-                                        <option value="{{ strtolower($sName) }}">{{ $sName }}</option>
-                                    @endforeach
-                                </select>
+                        {{-- Filter Controls Bar --}}
+                        <div class="card bg-light border mb-3">
+                            <div class="card-body p-3">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-5">
+                                        <label class="small fw-semibold text-muted mb-1 d-block">Search Question Text:</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-white border-end-0"><i class="icon-magnifier"></i></span>
+                                            <input type="text" id="modalBankSearch" class="form-control form-control-sm border-start-0" placeholder="Type words to search questions..." onkeyup="filterBankQuestions()">
+                                        </div>
+                                    </div>
+                                    @if($questionPaper->isCombined() || !$questionPaper->subject_id)
+                                        <div class="col-md-3">
+                                            <label class="small fw-semibold text-muted mb-1 d-block">Filter by Subject:</label>
+                                            <select id="modalBankSubject" class="form-select form-control form-control-sm" onchange="onBankSubjectChange()">
+                                                <option value="">-- All Subjects --</option>
+                                                @foreach($subjects as $sub)
+                                                    <option value="{{ $sub->id }}" data-name="{{ strtolower($sub->name) }}">{{ $sub->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small fw-semibold text-muted mb-1 d-block">Filter by Chapter:</label>
+                                            <select id="modalBankChapter" class="form-select form-control form-control-sm" onchange="filterBankQuestions()">
+                                                <option value="">-- All Chapters --</option>
+                                                @foreach($chapters as $ch)
+                                                    <option value="{{ $ch->id }}" data-subject-id="{{ $ch->subject_id }}" {{ ($questionPaper->chapter_id == $ch->id) ? 'selected' : '' }}>
+                                                        {{ $ch->full_title }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    @else
+                                        <div class="col-md-3">
+                                            <label class="small fw-semibold text-muted mb-1 d-block">Subject:</label>
+                                            <input type="text" class="form-control form-control-sm bg-light fw-bold text-success border" value="{{ optional($questionPaper->subject)->name }}" readonly disabled>
+                                            <input type="hidden" id="modalBankSubject" value="{{ strtolower(optional($questionPaper->subject)->name ?? '') }}" data-id="{{ $questionPaper->subject_id }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small fw-semibold text-muted mb-1 d-block">
+                                                Filter by Chapter:
+                                                @if($questionPaper->chapter)
+                                                    <span class="badge bg-success text-white py-0 px-1 ms-1" style="font-size: 10px;">Pre-selected</span>
+                                                @endif
+                                            </label>
+                                            <select id="modalBankChapter" class="form-select form-control form-control-sm" onchange="filterBankQuestions()">
+                                                <option value="">-- All Chapters --</option>
+                                                @foreach($chapters as $ch)
+                                                    <option value="{{ $ch->id }}" data-subject-id="{{ $ch->subject_id }}" {{ ($questionPaper->chapter_id == $ch->id) ? 'selected' : '' }}>
+                                                        {{ $ch->full_title }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted small">Select questions below to add to <strong>{{ $questionPaper->title }}</strong>:</span>
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                            <div>
+                                <span class="text-muted small">Select questions below to add to <strong>{{ $questionPaper->title }}</strong>:</span>
+                                <span class="badge bg-light text-dark border ms-2">Showing <strong id="bankVisibleCount">{{ $availableQuestions->count() }}</strong> questions</span>
+                                <span class="badge bg-primary text-white ms-1" id="selectedQuestionsBadge" style="display: none;">0 selected</span>
+                            </div>
                             <div class="form-check">
                                 <input type="checkbox" class="form-check-input" id="selectAllQuestions" onclick="toggleSelectAll(this)">
-                                <label class="form-check-label small fw-bold" for="selectAllQuestions">Select All</label>
+                                <label class="form-check-label small fw-bold" for="selectAllQuestions">Select All Visible</label>
                             </div>
                         </div>
 
-                        <div class="table-responsive border rounded" style="max-height: 400px; overflow-y: auto;">
+                        <div class="table-responsive border rounded" style="max-height: 420px; overflow-y: auto;">
                             <table class="table table-hover table-striped mb-0 align-middle">
-                                <thead class="table-light sticky-top">
+                                <thead class="table-light sticky-top" style="z-index: 10;">
                                     <tr>
-                                        <th style="width: 40px;">Select</th>
+                                        <th style="width: 45px;" class="text-center">Select</th>
                                         <th>Question</th>
-                                        <th>Subject</th>
-                                        <th>Type</th>
+                                        <th style="width: 140px;">Subject</th>
+                                        <th style="width: 180px;">Chapter</th>
+                                        <th style="width: 80px;" class="text-center">Type</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($availableQuestions as $availQ)
-                                    <tr class="bank-q-row" data-text="{{ strtolower($availQ->question) }}" data-subject="{{ strtolower(optional($availQ->subject)->name ?? '') }}">
-                                        <td>
+                                    <tr class="bank-q-row" 
+                                        data-text="{{ strtolower($availQ->question) }}" 
+                                        data-subject="{{ strtolower(optional($availQ->subject)->name ?? '') }}"
+                                        data-subject-id="{{ $availQ->subject_id ?? '' }}"
+                                        data-chapter-id="{{ $availQ->chapter_id ?? '' }}">
+                                        <td class="text-center">
                                             <input type="checkbox" name="question_ids[]" value="{{ $availQ->id }}" class="form-check-input q-checkbox">
                                         </td>
                                         <td>
                                             <div class="fw-semibold small text-dark">{{ $availQ->question }}</div>
+                                            @if($availQ->image_url)
+                                                <div class="mt-1">
+                                                    <a href="{{ $availQ->image_url }}" target="_blank" class="badge bg-light text-primary border small text-decoration-none">
+                                                        <i class="icon-picture me-1"></i> Attached Image
+                                                    </a>
+                                                </div>
+                                            @endif
                                         </td>
                                         <td>
                                             <span class="badge bg-secondary text-dark">{{ optional($availQ->subject)->name ?? 'General' }}</span>
                                         </td>
                                         <td>
+                                            @if($availQ->chapter)
+                                                <span class="badge bg-primary text-white text-wrap text-start" style="font-size: 11px;">
+                                                    {{ $availQ->chapter->full_title }}
+                                                </span>
+                                            @else
+                                                <span class="badge bg-light text-muted border small">No Chapter</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
                                             <span class="badge bg-info text-white small">{{ strtoupper($availQ->question_type) }}</span>
                                         </td>
                                     </tr>
                                     @endforeach
+                                    <tr id="bankNoMatchRow" style="display: none;">
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            <i class="icon-info d-block mb-2" style="font-size: 2rem; color: #6c757d;"></i>
+                                            <h6 class="text-muted">No questions found matching your filter criteria.</h6>
+                                            <small>Try selecting a different chapter, subject, or clearing the search text.</small>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -449,10 +536,36 @@
 function toggleSelectAll(source) {
     const checkboxes = document.querySelectorAll('.q-checkbox');
     checkboxes.forEach(cb => {
-        if (cb.closest('tr').style.display !== 'none') {
+        const row = cb.closest('tr');
+        if (row && row.style.display !== 'none') {
             cb.checked = source.checked;
         }
     });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const visibleRows = Array.from(document.querySelectorAll('.bank-q-row')).filter(r => r.style.display !== 'none');
+    const checkedVisible = visibleRows.filter(r => {
+        const cb = r.querySelector('.q-checkbox');
+        return cb && cb.checked;
+    });
+
+    const selectAllCb = document.getElementById('selectAllQuestions');
+    if (selectAllCb) {
+        selectAllCb.checked = visibleRows.length > 0 && checkedVisible.length === visibleRows.length;
+    }
+
+    const badge = document.getElementById('selectedQuestionsBadge');
+    if (badge) {
+        const totalChecked = document.querySelectorAll('.q-checkbox:checked').length;
+        if (totalChecked > 0) {
+            badge.style.display = '';
+            badge.textContent = totalChecked + ' selected';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
 }
 
 function updateCorrectAnswerIndex(selectedIndex) {
@@ -464,24 +577,129 @@ function updateCorrectAnswerIndex(selectedIndex) {
     }
 }
 
+function loadModal1Chapters(subjectId) {
+    const select = document.getElementById('modal_chapter_id');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- All Chapters / Optional --</option>';
+    if (!subjectId) return;
+
+    fetch('{{ url("admin/chapters/by-subject") }}/' + subjectId)
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(ch => {
+                const opt = document.createElement('option');
+                opt.value = ch.id;
+                opt.textContent = ch.title;
+                select.appendChild(opt);
+            });
+        })
+        .catch(err => console.error('Error loading chapters for Modal 1:', err));
+}
+
+function onBankSubjectChange() {
+    const subSelect = document.getElementById('modalBankSubject');
+    const chSelect = document.getElementById('modalBankChapter');
+    if (!subSelect || !chSelect) return;
+
+    const selectedSubId = subSelect.value;
+    const chOptions = chSelect.querySelectorAll('option');
+
+    chOptions.forEach(opt => {
+        if (!opt.value) {
+            opt.style.display = '';
+            return;
+        }
+        const optSubId = opt.getAttribute('data-subject-id');
+        if (!selectedSubId || optSubId == selectedSubId) {
+            opt.style.display = '';
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+
+    const currentOpt = chSelect.options[chSelect.selectedIndex];
+    if (currentOpt && currentOpt.style.display === 'none') {
+        chSelect.value = '';
+    }
+
+    filterBankQuestions();
+}
+
 function filterBankQuestions() {
-    const search = document.getElementById('modalBankSearch').value.toLowerCase();
-    const subject = document.getElementById('modalBankSubject') ? document.getElementById('modalBankSubject').value.toLowerCase() : '';
-    const rows = document.querySelectorAll('.bank-q-row');
+    const searchElem = document.getElementById('modalBankSearch');
+    const search = searchElem ? searchElem.value.toLowerCase().trim() : '';
     
+    const subjectElem = document.getElementById('modalBankSubject');
+    let subjectVal = '';
+    let subjectIdVal = '';
+    if (subjectElem) {
+        if (subjectElem.tagName === 'SELECT') {
+            const opt = subjectElem.options[subjectElem.selectedIndex];
+            subjectVal = opt ? (opt.getAttribute('data-name') || opt.value.toLowerCase().trim()) : '';
+            subjectIdVal = opt ? opt.value : '';
+        } else {
+            subjectVal = (subjectElem.value || '').toLowerCase().trim();
+            subjectIdVal = subjectElem.getAttribute('data-id') || '';
+        }
+    }
+
+    const chapterElem = document.getElementById('modalBankChapter');
+    const chapterIdVal = chapterElem ? chapterElem.value : '';
+
+    const rows = document.querySelectorAll('.bank-q-row');
+    let visibleCount = 0;
+
     rows.forEach(row => {
-        const text = row.getAttribute('data-text') || '';
-        const sub = row.getAttribute('data-subject') || '';
-        
-        const matchesText = text.includes(search);
-        const matchesSub = !subject || sub.includes(subject);
-        
-        if (matchesText && matchesSub) {
+        const text = (row.getAttribute('data-text') || '').toLowerCase();
+        const sub = (row.getAttribute('data-subject') || '').toLowerCase();
+        const subId = row.getAttribute('data-subject-id') || '';
+        const chId = row.getAttribute('data-chapter-id') || '';
+
+        const matchesText = !search || text.includes(search);
+        const matchesSub = !subjectVal || sub === subjectVal || subId === subjectIdVal || sub.includes(subjectVal);
+        const matchesChapter = !chapterIdVal || chId === chapterIdVal;
+
+        if (matchesText && matchesSub && matchesChapter) {
             row.style.display = '';
+            visibleCount++;
         } else {
             row.style.display = 'none';
         }
     });
+
+    const noMatchRow = document.getElementById('bankNoMatchRow');
+    if (noMatchRow) {
+        noMatchRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+    }
+
+    const countElem = document.getElementById('bankVisibleCount');
+    if (countElem) {
+        countElem.textContent = visibleCount;
+    }
+
+    updateSelectedCount();
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Initial run to apply default chapter filter if preselected
+    filterBankQuestions();
+
+    // Re-run whenever modal is displayed to ensure proper row display
+    const addModal = document.getElementById('addQuestionsModal');
+    if (addModal) {
+        if (window.jQuery) {
+            $(addModal).on('shown.bs.modal', function () {
+                filterBankQuestions();
+            });
+        }
+        addModal.addEventListener('shown.bs.modal', function () {
+            filterBankQuestions();
+        });
+    }
+
+    document.querySelectorAll('.q-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+});
 </script>
 @endsection

@@ -7,6 +7,7 @@ use App\Models\QuestionPaper;
 use App\Models\Subject;
 use App\Models\CourseName;
 use App\Models\Question;
+use App\Models\Chapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -57,13 +58,13 @@ class QuestionPaperController extends Controller
     /**
      * Show a single question paper with all questions grouped by subject and unattached available questions.
      */
-    public function show(QuestionPaper $questionPaper)
+    public function show(Request $request, QuestionPaper $questionPaper)
     {
-        $questionPaper->load(['course', 'subject', 'chapter', 'questions.subject', 'questions.answers']);
+        $questionPaper->load(['course', 'subject', 'chapter', 'questions.subject', 'questions.chapter', 'questions.answers']);
 
         $attachedIds = $questionPaper->questions->pluck('id');
 
-        $query = Question::whereNotIn('id', $attachedIds)->whereNull('deleted_at')->with('subject');
+        $query = Question::whereNotIn('id', $attachedIds)->whereNull('deleted_at')->with(['subject', 'chapter']);
         
         if ($questionPaper->course_id) {
             $query->whereHas('subject', function($q) use ($questionPaper) {
@@ -80,9 +81,22 @@ class QuestionPaperController extends Controller
         $grouped = $questionPaper->questions
             ->groupBy(fn($q) => optional($q->subject)->name ?? 'Unassigned');
 
-        $subjects = Subject::orderBy('name')->get();
+        $subjects = Subject::with('chapters')->orderBy('name')->get();
 
-        return view('corse.question_paper.show', compact('questionPaper', 'grouped', 'availableQuestions', 'subjects'));
+        if ($questionPaper->isMockTest() && $questionPaper->subject_id) {
+            $chapters = Chapter::where('subject_id', $questionPaper->subject_id)
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+        } elseif ($questionPaper->course_id) {
+            $chapters = Chapter::whereHas('subject', function($q) use ($questionPaper) {
+                $q->where('course_id', $questionPaper->course_id);
+            })->orderBy('sort_order')->orderBy('id')->get();
+        } else {
+            $chapters = Chapter::orderBy('sort_order')->orderBy('id')->get();
+        }
+
+        return view('corse.question_paper.show', compact('questionPaper', 'grouped', 'availableQuestions', 'subjects', 'chapters'));
     }
 
     /**
